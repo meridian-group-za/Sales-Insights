@@ -3,89 +3,140 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sales Insights Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<title>Sales Insights</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  /* Meridian Nexus visual system -- same tokens as the Inventory Dashboard
+     and the Nexus Platform hub, so this reads as the same product family
+     rather than a Stock Fix reskin. */
   :root{
-    --navy:#003B71;
-    --navy2:#0b2a4a;
-    --navy3:#123a63;
-    --orange:#FF6C0E;
-    --bg:#eef3f7;
-    --card:#fff;
-    --line:#dbe5ee;
-    --muted:#60758a;
-    --text:#102235;
-    --good:#1f9d6b;
-    --bad:#c93b3b;
-    --warn:#d9a72e;
+    --nx-bg:#081b34;
+    --nx-panel:rgba(18,58,104,.34);
+    --nx-panel-strong:rgba(18,58,104,.52);
+    --nx-line:rgba(28,63,107,.92);
+    --nx-orange:#ec6d25;
+    --nx-orange-soft:#f2955c;
+    --nx-text:#c9d7e6;
+    --nx-heading:#f3f7fc;
+    --nx-muted:#78a3cf;
+    --good:#5fb684;
+    --bad:#e0714f;
+    --warn:#e0b34a;
   }
   *{box-sizing:border-box;}
-  body{margin:0;font-family:'Montserrat','Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);}
+  html{color-scheme:dark;}
+  body{margin:0;font-family:'Poppins','Segoe UI',Arial,sans-serif;background:var(--nx-bg);color:var(--nx-text);-webkit-font-smoothing:antialiased;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:#244f7b;border-radius:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
 
-  header{height:46px;background:linear-gradient(135deg,var(--navy),var(--navy3));border-bottom:3px solid var(--orange);display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:#fff;}
-  header h1{margin:0;font-size:15px;font-weight:800;letter-spacing:.1px;}
-  header .sub{font-size:9.5px;color:#b5cade;margin-top:1px;}
-  .header-controls{display:flex;gap:8px;align-items:center;}
-  .header-controls select{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:5px;padding:4px 8px;font-size:11px;font-family:inherit;}
-  .header-controls select option{color:#000;}
-  .auth-status{font-size:10.5px;color:#b5cade;}
-  .header-controls a{color:#b5cade;font-size:10.5px;text-decoration:none;cursor:pointer;}
-  .header-controls a:hover{color:#fff;}
+  .app-shell{
+    position:relative;min-height:100vh;
+    background:
+      radial-gradient(circle at 82% -10%, rgba(42,102,166,.32), transparent 36%),
+      radial-gradient(circle at 45% 110%, rgba(236,109,37,.09), transparent 32%),
+      linear-gradient(180deg,#0a2240 0%,var(--nx-bg) 54%,#07172c 100%);
+  }
 
-  .filter-bar{height:43px;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:7px;align-items:center;padding:6px 18px;position:sticky;top:0;z-index:90;}
-  .filter-group{display:flex;align-items:center;gap:4px;flex-shrink:0;}
-  .filter-bar label{font-size:8.5px;color:#8193a6;text-transform:uppercase;font-weight:800;letter-spacing:.35px;}
-  .filter-bar select{height:27px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:10px;color:#30475c;font-family:inherit;}
-  .filter-bar .meta-tag{font-size:9.5px;color:#8a9aab;font-weight:700;margin-left:auto;}
+  /* SIDEBAR */
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:230px;background:rgba(8,22,44,.88);border-right:1px solid var(--nx-line);backdrop-filter:blur(16px);display:flex;flex-direction:column;z-index:50;}
+  .brand{padding:20px 18px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(157,196,236,.14);}
+  .brand-mark{width:26px;height:26px;flex:0 0 26px;}
+  .brand-mark img{width:100%;height:100%;object-fit:contain;}
+  .brand-name{font-size:15px;font-weight:600;color:var(--nx-heading);letter-spacing:-.02em;}
+  .brand-name span{color:var(--nx-orange);}
+  .brand-sub{margin-top:3px;color:var(--nx-muted);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.15em;}
+  .nav-section-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#5f83a8;padding:16px 16px 6px;}
+  nav{padding:0 10px;display:flex;flex-direction:column;gap:3px;}
+  .nav-item{position:relative;display:flex;align-items:center;gap:10px;height:36px;padding:0 12px;border-radius:9px;color:var(--nx-text);font-size:12.5px;font-weight:500;text-decoration:none;cursor:pointer;border:none;background:transparent;font-family:inherit;text-align:left;width:100%;transition:background .18s ease,color .18s ease;}
+  .nav-item:hover{background:rgba(157,196,236,.10);color:var(--nx-heading);}
+  .nav-item.active{background:rgba(236,109,37,.14);color:#fff;}
+  .nav-item.active .nav-bar{opacity:1;}
+  .nav-bar{position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:55%;border-radius:0 2px 2px 0;background:var(--nx-orange);opacity:0;}
+  .nav-item .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.5;flex:0 0 6px;}
+  .nav-item.active .dot{opacity:1;background:var(--nx-orange);}
+  .sidebar-foot{margin-top:auto;padding:12px 16px 16px;border-top:1px solid rgba(157,196,236,.14);font-size:10px;color:var(--nx-muted);}
 
-  main{max-width:1390px;margin:0 auto;padding:14px 16px 30px;}
+  /* MAIN */
+  .main{margin-left:230px;position:relative;z-index:1;}
+  .topbar{min-height:76px;padding:16px 28px;background:rgba(8,27,52,.60);border-bottom:1px solid rgba(157,196,236,.16);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:space-between;gap:20px;position:sticky;top:0;z-index:40;}
+  .eyebrow{color:var(--nx-orange);font-size:9.5px;font-weight:700;letter-spacing:.18em;margin-bottom:4px;text-transform:uppercase;}
+  .page-title h1{margin:0;font-size:24px;font-weight:700;color:var(--nx-heading);line-height:1.15;}
+  .topbar-controls{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+  .topbar-controls select{height:36px;background:rgba(18,58,104,.55);border:1px solid rgba(157,196,236,.22);border-radius:9px;padding:0 12px;color:var(--nx-heading);font-size:12px;font-family:inherit;}
+  .topbar-controls select option{background:#0B223C;color:#DCE8F5;}
+  .auth-status{font-size:10.5px;color:var(--nx-muted);white-space:nowrap;}
+  .topbar-controls a{color:var(--nx-muted);font-size:11px;text-decoration:none;}
+  .topbar-controls a:hover{color:#fff;}
+  .meta-tag{font-size:9.5px;color:var(--nx-muted);white-space:nowrap;}
 
-  .icon-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;}
-  .icon-kpi-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:12px;padding:12px 14px;box-shadow:0 3px 12px rgba(10,39,71,.06);min-height:76px;}
-  .icon-kpi-card.orange{border-left-color:var(--orange);}
-  .icon-kpi-card.green{border-left-color:var(--good);}
-  .icon-kpi-card.blue{border-left-color:var(--navy);}
-  .icon-kpi-card .kpi-label{font-size:8.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:800;}
-  .icon-kpi-card .kpi-value{font-size:22px;font-weight:900;color:var(--navy);line-height:1.15;margin-top:4px;}
-  .icon-kpi-card .kpi-sub{font-size:9px;color:#8696a8;font-weight:700;margin-top:3px;}
+  .scroll{max-width:1420px;margin:0 auto;padding:22px 24px 48px;}
+  .page{display:none;}
+  .page.active{display:block;}
 
-  .panel{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 14px;box-shadow:0 3px 12px rgba(10,39,71,.06);min-width:0;margin-bottom:8px;}
-  .panel h2{font-size:12px;margin:0 0 10px;color:var(--navy);font-weight:900;display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid #edf1f5;}
-  .panel h2 .tag{font-size:9px;color:#8a9aab;font-weight:700;}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;}
+  .kpi-card{border-radius:12px;background:linear-gradient(145deg,rgba(24,71,119,.52),rgba(13,43,80,.52));border:1px solid rgba(157,196,236,.20);box-shadow:0 14px 34px rgba(0,0,0,.15);padding:14px 16px;transition:transform .18s ease,border-color .18s ease;}
+  .kpi-card:hover{transform:translateY(-2px);border-color:rgba(157,196,236,.32);}
+  .kpi-card .kpi-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--nx-muted);font-weight:700;}
+  .kpi-card .kpi-value{font-size:24px;font-weight:700;color:var(--nx-heading);line-height:1.2;margin-top:6px;}
+  .kpi-card .kpi-sub{font-size:9.5px;color:#6f92b8;margin-top:4px;}
+  .kpi-card.orange{border-left:3px solid var(--nx-orange);}
+  .kpi-card.blue{border-left:3px solid #3e8fd8;}
+  .kpi-card.green{border-left:3px solid var(--good);}
 
-  .grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:8px;}
-  .grid-2b{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .panel{border-radius:14px;background:linear-gradient(145deg,rgba(24,71,119,.42),rgba(13,43,80,.42));border:1px solid rgba(157,196,236,.20);box-shadow:0 14px 34px rgba(0,0,0,.13);padding:16px 18px;margin-bottom:12px;}
+  .panel h2{font-size:12.5px;margin:0 0 14px;color:var(--nx-heading);font-weight:700;display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid rgba(157,196,236,.12);}
+  .panel h2 .tag{font-size:9px;color:var(--nx-muted);font-weight:600;text-transform:none;}
 
-  table.mini{width:100%;border-collapse:collapse;font-size:11px;}
-  table.mini th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);font-weight:800;border-bottom:1px solid var(--line);padding:5px 6px;}
-  table.mini td{padding:6px 6px;border-bottom:1px solid #f1f4f7;color:var(--text);}
+  .grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;}
+  .grid-2b{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:1100px){.grid-2,.grid-2b{grid-template-columns:1fr;}}
+
+  table.mini{width:100%;border-collapse:collapse;font-size:11.5px;}
+  table.mini th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--nx-muted);font-weight:700;border-bottom:1px solid rgba(157,196,236,.14);padding:6px 6px;}
+  table.mini td{padding:7px 6px;border-bottom:1px solid rgba(157,196,236,.08);color:var(--nx-text);}
   table.mini tr:last-child td{border-bottom:none;}
-  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:9.5px;font-weight:800;}
-  .pill.good{background:#e8f7ef;color:var(--good);}
-  .pill.bad{background:#fdeeee;color:var(--bad);}
-  .pill.warn{background:#fff6df;color:#9a6f00;}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:9.5px;font-weight:700;}
+  .pill.good{background:rgba(95,182,132,.16);color:var(--good);}
+  .pill.bad{background:rgba(224,113,79,.16);color:var(--bad);}
+  .pill.warn{background:rgba(224,179,74,.16);color:var(--warn);}
 
-  .bar-row{display:grid;grid-template-columns:110px 1fr 70px;gap:8px;align-items:center;margin:6px 0;}
-  .bar-label{font-size:9.5px;color:#24394d;font-weight:800;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .bar-track{height:14px;background:#e3e9ef;border-radius:999px;overflow:hidden;}
-  .bar-seg{height:100%;border-radius:999px;background:var(--navy);}
-  .bar-val{font-size:9.5px;color:var(--muted);font-weight:700;}
+  .bar-row{display:grid;grid-template-columns:110px 1fr 74px;gap:8px;align-items:center;margin:7px 0;}
+  .bar-label{font-size:9.5px;color:var(--nx-text);font-weight:600;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bar-track{height:13px;background:rgba(157,196,236,.10);border-radius:999px;overflow:hidden;}
+  .bar-seg{height:100%;border-radius:999px;background:linear-gradient(90deg,#3e8fd8,#eb7a2b);}
+  .bar-val{font-size:9.5px;color:var(--nx-muted);font-weight:600;}
 
   .chart-wrap{position:relative;height:220px;}
 
+  .insight-card{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border-radius:10px;background:rgba(157,196,236,.05);margin-bottom:8px;border:1px solid rgba(157,196,236,.08);}
+  .insight-card:last-child{margin-bottom:0;}
+  .insight-card .badge{flex:0 0 auto;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;}
+  .insight-card.good .badge{background:rgba(95,182,132,.18);color:var(--good);}
+  .insight-card.bad .badge{background:rgba(224,113,79,.18);color:var(--bad);}
+  .insight-card.warn .badge{background:rgba(224,179,74,.18);color:var(--warn);}
+  .insight-card .txt{font-size:11.5px;color:var(--nx-text);line-height:1.55;}
+  .insight-card .txt b{color:var(--nx-heading);}
+
+  .coming-soon{padding:36px 20px;text-align:center;color:var(--nx-muted);}
+  .coming-soon .cs-icon{font-size:28px;margin-bottom:12px;opacity:.6;}
+  .coming-soon h3{color:var(--nx-heading);font-size:15px;margin:0 0 8px;}
+  .coming-soon p{font-size:12px;line-height:1.6;max-width:480px;margin:0 auto;}
+
   /* AUTH OVERLAY */
-  body.auth-pending main, body.auth-pending .filter-bar{display:none;}
-  #authOverlay{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy),var(--navy3));display:flex;align-items:center;justify-content:center;z-index:1000;}
-  #authOverlay .box{background:#fff;border-radius:16px;padding:40px 44px;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);}
-  #authOverlay h2{margin:0 0 8px;color:var(--navy);font-size:18px;}
-  #authOverlay p{margin:0 0 22px;color:var(--muted);font-size:12.5px;line-height:1.5;}
-  #authOverlay button{background:var(--orange);color:#fff;border:none;border-radius:8px;padding:12px 26px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
-  #authOverlay button:hover{background:#e65f00;}
+  body.auth-pending .main{display:none;}
+  #authOverlay{position:fixed;inset:0;background:linear-gradient(180deg,#0a2240,var(--nx-bg));display:flex;align-items:center;justify-content:center;z-index:1000;}
+  #authOverlay .box{background:rgba(18,58,104,.55);border:1px solid rgba(157,196,236,.2);border-radius:16px;padding:40px 44px;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);backdrop-filter:blur(10px);}
+  #authOverlay h2{margin:0 0 8px;color:var(--nx-heading);font-size:18px;}
+  #authOverlay p{margin:0 0 22px;color:var(--nx-muted);font-size:12.5px;line-height:1.5;}
+  #authOverlay button{background:var(--nx-orange);color:#fff;border:none;border-radius:8px;padding:12px 26px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+  #authOverlay button:hover{background:var(--nx-orange-soft);}
   #authError{color:var(--bad);font-size:11px;margin-top:14px;min-height:14px;}
   #authLoadingBox{display:none;}
   #authLoadingBox.active{display:block;}
-  #authLoadingBox .spinner{width:34px;height:34px;border:3px solid #eef3f7;border-top-color:var(--orange);border-radius:50%;margin:0 auto 16px;animation:spin 0.8s linear infinite;}
+  #authLoadingBox .spinner{width:34px;height:34px;border:3px solid rgba(157,196,236,.2);border-top-color:var(--nx-orange);border-radius:50%;margin:0 auto 16px;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
@@ -95,89 +146,211 @@
   <div class="box">
     <h2>Sales Insights</h2>
     <p>Sign in with your Meridian Group Microsoft account to view sales performance across all clients.</p>
-    <div id="authLoadingBox">
-      <div class="spinner"></div>
-    </div>
+    <div id="authLoadingBox"><div class="spinner"></div></div>
     <button id="signInBtn">Sign in with Microsoft</button>
     <div id="authError"></div>
   </div>
 </div>
 
-<header>
-  <div>
-    <h1>Sales Insights</h1>
-    <div class="sub">Meridian Group &middot; monthly sell-out performance</div>
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><img src="assets/meridian-hexagon.png" alt="Meridian"></div>
+      <div>
+        <div class="brand-name">Meridian <span>Nexus</span></div>
+        <div class="brand-sub">Sales Insights</div>
+      </div>
+    </div>
+    <div class="nav-section-label">Pages</div>
+    <nav id="navList"></nav>
+    <div class="sidebar-foot" id="sidebarFoot"></div>
   </div>
-  <div class="header-controls">
-    <span class="auth-status" id="authStatus"></span>
-    <a href="#" id="signOutBtn">Sign out</a>
-  </div>
-</header>
 
-<div class="filter-bar">
-  <div class="filter-group">
-    <label>Client</label>
-    <select id="clientSelect"><option value="">All Clients</option></select>
+  <div class="main">
+    <header class="topbar">
+      <div class="page-title">
+        <div class="eyebrow">Sales Insights</div>
+        <h1 id="pageTitle">Executive Overview</h1>
+      </div>
+      <div class="topbar-controls">
+        <select id="clientSelect"><option value="">All Clients</option></select>
+        <span class="meta-tag" id="metaTag"></span>
+        <span class="auth-status" id="authStatus"></span>
+        <a href="#" id="signOutBtn">Sign out</a>
+      </div>
+    </header>
+
+    <div class="scroll">
+
+      <div class="page active" data-page="overview">
+        <div class="kpi-row">
+          <div class="kpi-card blue">
+            <div class="kpi-label">Sales Value</div>
+            <div class="kpi-value" id="kpiValue">&mdash;</div>
+            <div class="kpi-sub" id="kpiValueSub"></div>
+          </div>
+          <div class="kpi-card orange">
+            <div class="kpi-label">Units Sold</div>
+            <div class="kpi-value" id="kpiUnits">&mdash;</div>
+            <div class="kpi-sub" id="kpiUnitsSub"></div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-label">Stores Trading</div>
+            <div class="kpi-value" id="kpiStores">&mdash;</div>
+            <div class="kpi-sub" id="kpiStoresSub"></div>
+          </div>
+          <div class="kpi-card blue">
+            <div class="kpi-label">Latest Month</div>
+            <div class="kpi-value" id="kpiMonth">&mdash;</div>
+            <div class="kpi-sub" id="kpiMonthSub"></div>
+          </div>
+        </div>
+
+        <div class="panel" id="insightsPanel">
+          <h2>Executive Insights <span class="tag">auto-generated</span></h2>
+          <div id="insightCards"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <h2>Monthly Sales Trend <span class="tag" id="trendTag"></span></h2>
+            <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+          </div>
+          <div class="panel">
+            <h2>Sales by Province <span class="tag">latest month</span></h2>
+            <div id="provinceBars"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <h2>Category Mix <span class="tag">latest month</span></h2>
+            <div id="categoryBars"></div>
+          </div>
+          <div class="panel">
+            <h2>Category Trend <span class="tag" id="categoryTrendTag"></span></h2>
+            <div class="chart-wrap"><canvas id="categoryTrendChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid-2b">
+          <div class="panel">
+            <h2>Top Mover Stores <span class="tag">latest month</span></h2>
+            <table class="mini" id="storeMoversTable">
+              <thead><tr><th>Store</th><th>Signal</th><th>6M Growth</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <h2>Top Mover Brands <span class="tag">latest month</span></h2>
+            <table class="mini" id="brandMoversTable">
+              <thead><tr><th>Brand</th><th>Signal</th><th>Share vs Peer</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Remaining pages: scaffolded as the base per the agreed build
+           order (Executive Overview done; these are next, in order). Each
+           names the business question it will answer so the nav isn't a
+           dead end -- just not wired to data yet. -->
+      <div class="page" data-page="client">
+        <div class="panel"><div class="coming-soon">
+          <div class="cs-icon">◷</div><h3>Client Performance</h3>
+          <p>Which clients are growing and which are under pressure? Trend by client, ranking, growth ranking, category mix within client.</p>
+        </div></div>
+      </div>
+      <div class="page" data-page="category">
+        <div class="panel"><div class="coming-soon">
+          <div class="cs-icon">◷</div><h3>Category Performance</h3>
+          <p>Which categories are driving the business? Growth waterfall, category trend, contribution %, performance matrix. Needs a category cleanup mapper first (274 raw category values seen in the source data).</p>
+        </div></div>
+      </div>
+      <div class="page" data-page="brand">
+        <div class="panel"><div class="coming-soon">
+          <div class="cs-icon">◷</div><h3>Brand Performance</h3>
+          <p>Which brands are carrying the portfolio? Brand trend, ranking, contribution tree, growth breakdown.</p>
+        </div></div>
+      </div>
+      <div class="page" data-page="sku">
+        <div class="panel"><div class="coming-soon">
+          <div class="cs-icon">◷</div><h3>SKU Deep Dive</h3>
+          <p>Which SKUs should we protect, support or remove? Top/bottom SKUs, Pareto analysis, SKU trend. Built from sales_fact's product/sku column plus the Product List mapper for clean article descriptions.</p>
+        </div></div>
+      </div>
+      <div class="page" data-page="store">
+        <div class="panel"><div class="coming-soon">
+          <div class="cs-icon">◷</div><h3>Store Performance</h3>
+          <p>Where is the business won or lost? Top/bottom stores, growth ranking, new/lost stores.</p>
+        </div></div>
+      </div>
+      <div class="page" data-page="opportunity">
+        <div class="panel"><div class="coming-soon">
+          <div class="cs-icon">◷</div><h3>Opportunities &amp; Risks</h3>
+          <p>Where should sales teams focus? Whitespace (stores buying the category but not this brand/SKU), lost-store recovery, underperforming stores, declining stores.</p>
+        </div></div>
+      </div>
+      <div class="page" data-page="trends">
+        <div class="panel"><div class="coming-soon">
+          <div class="cs-icon">◷</div><h3>Trends &amp; Insights</h3>
+          <p>What's changing and what should management know? Rolling 3/6/12-month trend, seasonality, growth momentum, expanded automated insight engine.</p>
+        </div></div>
+      </div>
+      <div class="page" data-page="explorer">
+        <div class="panel"><div class="coming-soon">
+          <div class="cs-icon">◷</div><h3>Data Explorer</h3>
+          <p>Drill-down tables with export, for ad-hoc questions the fixed pages don't answer directly.</p>
+        </div></div>
+      </div>
+
+    </div>
   </div>
-  <div class="meta-tag" id="metaTag"></div>
 </div>
-
-<main>
-  <div class="icon-kpi-row">
-    <div class="icon-kpi-card blue">
-      <div class="kpi-label">Sales Value</div>
-      <div class="kpi-value" id="kpiValue">&mdash;</div>
-      <div class="kpi-sub" id="kpiValueSub"></div>
-    </div>
-    <div class="icon-kpi-card orange">
-      <div class="kpi-label">Units Sold</div>
-      <div class="kpi-value" id="kpiUnits">&mdash;</div>
-      <div class="kpi-sub" id="kpiUnitsSub"></div>
-    </div>
-    <div class="icon-kpi-card green">
-      <div class="kpi-label">Stores Trading</div>
-      <div class="kpi-value" id="kpiStores">&mdash;</div>
-      <div class="kpi-sub" id="kpiStoresSub"></div>
-    </div>
-    <div class="icon-kpi-card blue">
-      <div class="kpi-label">Latest Month</div>
-      <div class="kpi-value" id="kpiMonth">&mdash;</div>
-      <div class="kpi-sub" id="kpiMonthSub"></div>
-    </div>
-  </div>
-
-  <div class="grid-2">
-    <div class="panel">
-      <h2>Monthly Sales Trend <span class="tag" id="trendTag"></span></h2>
-      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
-    </div>
-    <div class="panel">
-      <h2>Sales by Province <span class="tag">latest month</span></h2>
-      <div id="provinceBars"></div>
-    </div>
-  </div>
-
-  <div class="grid-2b">
-    <div class="panel">
-      <h2>Top Mover Stores <span class="tag">latest month</span></h2>
-      <table class="mini" id="storeMoversTable">
-        <thead><tr><th>Store</th><th>Signal</th><th>6M Growth</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <div class="panel">
-      <h2>Top Mover Brands <span class="tag">latest month</span></h2>
-      <table class="mini" id="brandMoversTable">
-        <thead><tr><th>Brand</th><th>Signal</th><th>Share vs Peer</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-</main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 <script>
+// =========================================================================
+// PAGE NAV — client-side only, no routing/history. Executive Overview is
+// the only page with real content; the rest are scaffolded placeholders
+// (see the "Remaining pages" comment in the HTML) so the sidebar reflects
+// the full planned structure instead of just the one built page.
+// =========================================================================
+const PAGES = [
+  { key: 'overview', label: 'Executive Overview' },
+  { key: 'client', label: 'Client Performance' },
+  { key: 'category', label: 'Category Performance' },
+  { key: 'brand', label: 'Brand Performance' },
+  { key: 'sku', label: 'SKU Deep Dive' },
+  { key: 'store', label: 'Store Performance' },
+  { key: 'opportunity', label: 'Opportunities & Risks' },
+  { key: 'trends', label: 'Trends & Insights' },
+  { key: 'explorer', label: 'Data Explorer' },
+];
+
+function renderNav() {
+  const nav = document.getElementById('navList');
+  nav.innerHTML = PAGES.map(p =>
+    `<button type="button" class="nav-item${p.key === 'overview' ? ' active' : ''}" data-nav="${p.key}">
+       <span class="nav-bar"></span><span class="dot"></span><span>${p.label}</span>
+     </button>`
+  ).join('');
+  nav.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-nav]');
+    if (!btn) return;
+    goToPage(btn.getAttribute('data-nav'));
+  });
+}
+
+function goToPage(key) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.getAttribute('data-nav') === key));
+  document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.getAttribute('data-page') === key));
+  const page = PAGES.find(p => p.key === key);
+  document.getElementById('pageTitle').textContent = page ? page.label : '';
+}
+renderNav();
+
 // =========================================================================
 // CONFIG — same Meridian Function App / Entra ID app registration as
 // stockfix-dashboard, just a different route (sales-data) and its own
@@ -192,14 +365,37 @@ const MSAL_CONFIG = {
 const SALES_API_BASE = "https://stockfix-validate-fdhkefdwc6dmejda.northeurope-01.azurewebsites.net/api/sales-data/";
 const API_SCOPE = "api://878107a0-1dfb-4697-a7a1-615e47e9f67b/access_as_user";
 
-const msalInstance = new msal.PublicClientApplication({
-  auth: {
-    clientId: MSAL_CONFIG.clientId,
-    authority: `https://login.microsoftonline.com/${MSAL_CONFIG.tenantId}`,
-    redirectUri: MSAL_CONFIG.redirectUri,
-  },
-  cache: { cacheLocation: "sessionStorage" },
-});
+// ---------------------------------------------------------------------
+// TEMP BUILD MODE — Entra ID sign-in and the live API are being wired up
+// last, on purpose (see project notes). While this is true, the page
+// skips MSAL and the network call entirely and reads local files under
+// mock-data/ (real numbers, exported straight from sales.duckdb by
+// scripts/export_mock_data.py) so the dashboard can be built and viewed
+// with no backend/auth dependency at all.
+//
+// Flip MOCK_MODE to false once the sales-data API is live and the Entra
+// ID app registration's redirect URI has been added -- everything below
+// this flag is the only thing that changes; renderers/state stay as-is.
+// ---------------------------------------------------------------------
+const MOCK_MODE = true;
+let mockCache = {};
+async function loadMockFile(name) {
+  if (!mockCache[name]) {
+    const res = await fetch(`mock-data/${name}.json`);
+    if (!res.ok) throw new Error(`Missing mock file: ${name}.json (run scripts/export_mock_data.py)`);
+    mockCache[name] = await res.json();
+  }
+  return mockCache[name];
+}
+
+// MOCK_MODE never touches MSAL at all -- constructing msalInstance requires
+// the msal-browser CDN script to have loaded successfully, and this whole
+// block used to run unconditionally at parse time. If that CDN load ever
+// failed (blocked network, ad-blocker, offline), the ReferenceError on
+// `msal` here threw before MOCK_MODE's own boot() call further down ever
+// ran, so the mock build depended on a network resource it doesn't need --
+// symptom was a blank page with no visible error to the user.
+let msalInstance = null;
 
 function setAuthLoading(on) {
   const box = document.getElementById("authLoadingBox");
@@ -208,31 +404,43 @@ function setAuthLoading(on) {
   if (btn) btn.style.display = on ? "none" : "block";
 }
 
-document.getElementById("signInBtn").addEventListener("click", () => {
-  msalInstance.loginRedirect({ scopes: [API_SCOPE] });
-});
-document.getElementById("signOutBtn").addEventListener("click", (e) => {
-  e.preventDefault();
-  msalInstance.logoutRedirect();
-});
-
-msalInstance.handleRedirectPromise().then(async (result) => {
-  if (result) {
-    setAuthLoading(true);
-    await boot();
-  } else {
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
+if (MOCK_MODE) {
+  document.getElementById('authOverlay').style.display = 'none';
+  boot().catch(e => console.error('boot() failed:', e));
+} else {
+  msalInstance = new msal.PublicClientApplication({
+    auth: {
+      clientId: MSAL_CONFIG.clientId,
+      authority: `https://login.microsoftonline.com/${MSAL_CONFIG.tenantId}`,
+      redirectUri: MSAL_CONFIG.redirectUri,
+    },
+    cache: { cacheLocation: "sessionStorage" },
+  });
+  document.getElementById("signInBtn").addEventListener("click", () => {
+    msalInstance.loginRedirect({ scopes: [API_SCOPE] });
+  });
+  document.getElementById("signOutBtn").addEventListener("click", (e) => {
+    e.preventDefault();
+    msalInstance.logoutRedirect();
+  });
+  msalInstance.handleRedirectPromise().then(async (result) => {
+    if (result) {
       setAuthLoading(true);
-      try {
-        await boot();
-      } catch (e) {
-        console.warn("Silent init failed, showing login screen:", e);
-        setAuthLoading(false);
+      await boot();
+    } else {
+      const accounts = msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        setAuthLoading(true);
+        try {
+          await boot();
+        } catch (e) {
+          console.warn("Silent init failed, showing login screen:", e);
+          setAuthLoading(false);
+        }
       }
     }
-  }
-}).catch(e => console.error("handleRedirectPromise error:", e));
+  }).catch(e => console.error("handleRedirectPromise error:", e));
+}
 
 async function getApiToken() {
   const accounts = msalInstance.getAllAccounts();
@@ -247,10 +455,56 @@ async function getApiToken() {
 }
 
 async function apiFetchJson(relativePath) {
+  if (MOCK_MODE) return mockFetchJson(relativePath);
   const headers = { Authorization: `Bearer ${await getApiToken()}` };
   const res = await fetch(SALES_API_BASE + relativePath, { headers });
   if (!res.ok) throw new Error(`API request failed (${res.status}): ${relativePath}`);
   return res.json();
+}
+
+// Mirrors dispatch_path's routing closely enough for the mock files: same
+// route names and ?client=/?type= params, just read from local JSON that
+// was materialized unfiltered (allowed_clients=None) instead of computed
+// live per-request. client_monthly is filtered client-side here since its
+// mock file carries every client's rows, same shape the real "all clients"
+// branch returns.
+async function mockFetchJson(relativePath) {
+  const [path, qs] = relativePath.split('?');
+  const params = new URLSearchParams(qs || '');
+  const client = params.get('client');
+
+  if (path === 'meta') return loadMockFile('meta');
+
+  if (path === 'client_monthly') {
+    const rows = await loadMockFile('client_monthly');
+    return client ? rows.filter(r => r.client === client) : rows;
+  }
+
+  if (path === 'summary') {
+    if (!client) return loadMockFile('summary');
+    const rows = (await loadMockFile('client_monthly')).filter(r => r.client === client);
+    const month = rows.reduce((max, r) => (!max || r.month > max) ? r.month : max, null);
+    const latest = rows.filter(r => r.month === month);
+    return {
+      sales_value: latest.reduce((s, r) => s + Number(r.sales_value || 0), 0),
+      sales_units: latest.reduce((s, r) => s + Number(r.sales_units || 0), 0),
+      store_count: latest.reduce((s, r) => s + Number(r.store_count || 0), 0),
+      month,
+    };
+  }
+
+  if (path === 'province_monthly') return loadMockFile('province_monthly');
+
+  if (path === 'category_monthly') return loadMockFile('category_monthly');
+
+  if (path === 'insights/stores') {
+    const type = params.get('type') || 'declining';
+    return loadMockFile(`insights_stores_${type}`);
+  }
+
+  if (path === 'insights/brands') return loadMockFile('insights_brands');
+
+  throw new Error(`No mock handler for route: ${path}`);
 }
 
 // =========================================================================
@@ -273,8 +527,9 @@ let currentClient = '';
 
 async function boot() {
   document.body.classList.remove('auth-pending');
-  const accounts = msalInstance.getAllAccounts();
-  document.getElementById('authStatus').textContent = accounts[0]?.username || '';
+  document.getElementById('authStatus').textContent = MOCK_MODE
+    ? 'Build mode — local data'
+    : (msalInstance.getAllAccounts()[0]?.username || '');
 
   const meta = await apiFetchJson('meta');
   document.getElementById('metaTag').textContent =
@@ -320,6 +575,12 @@ async function loadScope() {
 
   const brands = await apiFetchJson('insights/brands' + clientParam);
   renderBrandMovers(brands);
+
+  const category = await apiFetchJson('category_monthly' + clientParam);
+  renderCategory(category);
+  renderCategoryTrend(category);
+
+  renderInsights({ declining, growing, atRisk, brands, category, summary });
 }
 
 function renderTrend(rows) {
@@ -344,8 +605,8 @@ function renderTrend(rows) {
       datasets: [{
         label: 'Sales value',
         data: values,
-        borderColor: '#003B71',
-        backgroundColor: 'rgba(0,59,113,0.08)',
+        borderColor: '#eb7a2b',
+        backgroundColor: 'rgba(235,122,43,0.10)',
         borderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 4,
@@ -357,8 +618,8 @@ function renderTrend(rows) {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: { ticks: { callback: (v) => fmtR(v) }, grid: { color: '#f1f4f7' } },
-        x: { grid: { display: false } }
+        y: { ticks: { color: '#78a3cf', callback: (v) => fmtR(v) }, grid: { color: 'rgba(157,196,236,.10)' } },
+        x: { ticks: { color: '#78a3cf' }, grid: { display: false } }
       }
     }
   });
@@ -379,7 +640,7 @@ function renderProvince(rows) {
       <div class="bar-val">${fmtR(r.sales_value)}</div>`;
     el.appendChild(row);
   });
-  if (!latest.length) el.innerHTML = '<div style="font-size:11px;color:var(--muted);">No province data for this scope.</div>';
+  if (!latest.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">No province data for this scope.</div>';
 }
 
 function renderStoreMovers(declining, growing, atRisk) {
@@ -397,7 +658,7 @@ function renderStoreMovers(declining, growing, atRisk) {
       <td>${fmtPct(r['Growth_6M'])}</td>`;
     tbody.appendChild(tr);
   });
-  if (!rows.length) tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);">No mover data for this scope.</td></tr>';
+  if (!rows.length) tbody.innerHTML = '<tr><td colspan="3" style="color:var(--nx-muted);">No mover data for this scope.</td></tr>';
 }
 
 function renderBrandMovers(rows) {
@@ -412,7 +673,138 @@ function renderBrandMovers(rows) {
       <td>${fmtPct(r['Brand_Share_vs_Peer'])}</td>`;
     tbody.appendChild(tr);
   });
-  if (!rows.length) tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);">No brand mover data for this scope.</td></tr>';
+  if (!rows.length) tbody.innerHTML = '<tr><td colspan="3" style="color:var(--nx-muted);">No brand mover data for this scope.</td></tr>';
+}
+
+let categoryTrendChart = null;
+
+function renderCategory(rows) {
+  const el = document.getElementById('categoryBars');
+  el.innerHTML = '';
+  const latestMonth = rows.reduce((max, r) => (!max || r.month > max) ? r.month : max, null);
+  // category is raw source text, not run through a cleanup mapper like
+  // store/brand are (274 distinct values seen in one build) -- capping to
+  // the top values keeps this readable until that mapper exists.
+  const latest = rows.filter(r => r.month === latestMonth).sort((a, b) => b.sales_value - a.sales_value).slice(0, 12);
+  const max = Math.max(1, ...latest.map(r => Number(r.sales_value || 0)));
+  latest.forEach(r => {
+    const pct = (Number(r.sales_value || 0) / max * 100).toFixed(1);
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `<div class="bar-label">${r.category || 'Unknown'}</div>
+      <div class="bar-track"><div class="bar-seg" style="width:${pct}%"></div></div>
+      <div class="bar-val">${fmtR(r.sales_value)}</div>`;
+    el.appendChild(row);
+  });
+  if (!latest.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">No category data for this scope.</div>';
+}
+
+function renderCategoryTrend(rows) {
+  document.getElementById('categoryTrendTag').textContent = currentClient || 'all clients';
+  const byMonth = {};
+  const categories = new Set();
+  rows.forEach(r => {
+    categories.add(r.category);
+    byMonth[r.month] = byMonth[r.month] || {};
+    byMonth[r.month][r.category] = (byMonth[r.month][r.category] || 0) + Number(r.sales_value || 0);
+  });
+  const months = Object.keys(byMonth).sort();
+  // Top 5 categories by total value keep their own line; the rest fold into
+  // "Other" so a client with dozens of categories doesn't turn the legend
+  // into unreadable noise (same reasoning as the categorical-hues rule --
+  // more than a handful of series stops being identity-readable at a glance).
+  const totals = {};
+  categories.forEach(c => { totals[c] = months.reduce((s, m) => s + (byMonth[m][c] || 0), 0); });
+  const topCats = [...categories].sort((a, b) => totals[b] - totals[a]).slice(0, 5);
+  const palette = ['#eb7a2b', '#3e8fd8', '#5fb684', '#9dc4ec', '#e0b34a'];
+
+  const datasets = topCats.map((cat, i) => ({
+    label: cat,
+    data: months.map(m => byMonth[m][cat] || 0),
+    borderColor: palette[i],
+    backgroundColor: palette[i],
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 3,
+    tension: 0.25,
+  }));
+  const hasOther = categories.size > topCats.length;
+  if (hasOther) {
+    datasets.push({
+      label: 'Other',
+      data: months.map(m => {
+        const known = topCats.reduce((s, c) => s + (byMonth[m][c] || 0), 0);
+        const total = Object.values(byMonth[m]).reduce((s, v) => s + v, 0);
+        return total - known;
+      }),
+      borderColor: '#5f83a8', backgroundColor: '#5f83a8',
+      borderWidth: 2, pointRadius: 0, pointHoverRadius: 3, tension: 0.25, borderDash: [4, 3],
+    });
+  }
+
+  const ctx = document.getElementById('categoryTrendChart').getContext('2d');
+  if (categoryTrendChart) categoryTrendChart.destroy();
+  categoryTrendChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: months.map(fmtMonth), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: '#c9d7e6', boxWidth: 10, font: { size: 9 } } } },
+      scales: {
+        y: { ticks: { color: '#78a3cf', callback: (v) => fmtR(v) }, grid: { color: 'rgba(157,196,236,.10)' } },
+        x: { ticks: { color: '#78a3cf' }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// Simple rule-based insight generation from data already on screen -- no
+// separate insight-engine endpoint yet. Each card names a concrete driver
+// (a real store/brand/category and its number) rather than a generic
+// statement, so it reads as something a rep could actually act on.
+function renderInsights({ declining, growing, atRisk, brands, category, summary }) {
+  const cards = [];
+
+  const topGrowStore = [...growing].sort((a, b) => (b.Growth_vs_Peer || 0) - (a.Growth_vs_Peer || 0))[0];
+  if (topGrowStore) {
+    cards.push({ kind: 'good', icon: '✓', html:
+      `<b>${topGrowStore['cleaned store name']}</b> is growing ${fmtPct(topGrowStore['Growth_6M'])} over 6 months, ${fmtR(topGrowStore['Growth_vs_Peer'])} ahead of its peer group.` });
+  }
+
+  const topRiskStore = [...atRisk].sort((a, b) => (b.ConsecutiveDeclineMonths || 0) - (a.ConsecutiveDeclineMonths || 0))[0];
+  if (topRiskStore) {
+    cards.push({ kind: 'bad', icon: '!', html:
+      `<b>${topRiskStore['cleaned store name']}</b> has declined for <b>${topRiskStore['ConsecutiveDeclineMonths']} consecutive months</b> — a chronic trend, not a one-off dip.` });
+  }
+
+  const topGainBrand = brands.filter(b => b.insight_type === 'gaining_share').sort((a, b) => (b.Brand_Share_vs_Peer || 0) - (a.Brand_Share_vs_Peer || 0))[0];
+  if (topGainBrand) {
+    cards.push({ kind: 'good', icon: '↑', html:
+      `<b>${topGainBrand['cleaned brand']}</b> is gaining share of store sales, ${fmtPct(topGainBrand['Brand_Share_vs_Peer'])} above its peer average at ${topGainBrand['cleaned store name']}.` });
+  }
+
+  const topLoseBrand = brands.filter(b => b.insight_type === 'losing_share').sort((a, b) => (a.Brand_Share_vs_Peer || 0) - (b.Brand_Share_vs_Peer || 0))[0];
+  if (topLoseBrand) {
+    cards.push({ kind: 'warn', icon: '↓', html:
+      `<b>${topLoseBrand['cleaned brand']}</b> is losing share of store sales, ${fmtPct(topLoseBrand['Brand_Share_vs_Peer'])} below its peer average at ${topLoseBrand['cleaned store name']}.` });
+  }
+
+  const latestMonth = category.reduce((max, r) => (!max || r.month > max) ? r.month : max, null);
+  const latestCats = category.filter(r => r.month === latestMonth);
+  const topCat = [...latestCats].sort((a, b) => b.sales_value - a.sales_value)[0];
+  if (topCat) {
+    const total = latestCats.reduce((s, r) => s + Number(r.sales_value || 0), 0);
+    const share = total ? (topCat.sales_value / total * 100).toFixed(0) : '—';
+    cards.push({ kind: 'good', icon: '★', html:
+      `<b>${topCat.category}</b> is the leading category this month at ${fmtR(topCat.sales_value)} (${share}% of tracked sales).` });
+  }
+
+  cards.push({ kind: 'good', icon: 'i', html:
+    `Total sales value for ${fmtMonth(summary.month)}: <b>${fmtR(summary.sales_value)}</b> across <b>${fmtN(summary.store_count)}</b> trading stores.` });
+
+  const el = document.getElementById('insightCards');
+  el.innerHTML = cards.map(c => `<div class="insight-card ${c.kind}"><div class="badge">${c.icon}</div><div class="txt">${c.html}</div></div>`).join('');
+  if (!cards.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">Not enough data for insights at this scope.</div>';
 }
 </script>
 </body>
