@@ -81,15 +81,23 @@
   .page{display:none;}
   .page.active{display:block;}
 
-  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;}
-  .kpi-card{border-radius:12px;background:linear-gradient(145deg,rgba(24,71,119,.52),rgba(13,43,80,.52));border:1px solid rgba(157,196,236,.20);box-shadow:0 14px 34px rgba(0,0,0,.15);padding:14px 16px;transition:transform .18s ease,border-color .18s ease;}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px;}
+  .kpi-card{border-radius:12px;background:linear-gradient(145deg,rgba(24,71,119,.52),rgba(13,43,80,.52));border:1px solid rgba(157,196,236,.20);box-shadow:0 14px 34px rgba(0,0,0,.15);padding:12px 14px;transition:transform .18s ease,border-color .18s ease;}
   .kpi-card:hover{transform:translateY(-2px);border-color:rgba(157,196,236,.32);}
-  .kpi-card .kpi-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--nx-muted);font-weight:700;}
-  .kpi-card .kpi-value{font-size:24px;font-weight:700;color:var(--nx-heading);line-height:1.2;margin-top:6px;}
-  .kpi-card .kpi-sub{font-size:9.5px;color:#6f92b8;margin-top:4px;}
+  .kpi-card .kpi-label{font-size:8.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--nx-muted);font-weight:700;}
+  .kpi-card .kpi-value{font-size:19px;font-weight:700;color:var(--nx-heading);line-height:1.2;margin-top:5px;}
+  .kpi-card .kpi-sub{font-size:9px;color:#6f92b8;margin-top:5px;display:flex;align-items:center;gap:4px;}
   .kpi-card.orange{border-left:3px solid var(--nx-orange);}
   .kpi-card.blue{border-left:3px solid #3e8fd8;}
   .kpi-card.green{border-left:3px solid var(--good);}
+  .delta{font-weight:700;}
+  .delta.up{color:var(--good);}
+  .delta.down{color:var(--bad);}
+  .kpi-footline{font-size:10.5px;color:var(--nx-muted);margin-bottom:12px;}
+
+  .segment-row{display:grid;grid-template-columns:130px 1fr 60px 74px;gap:8px;align-items:center;margin:7px 0;}
+  .segment-label{font-size:9.5px;color:var(--nx-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .segment-share{font-size:9.5px;color:var(--nx-muted);font-weight:600;text-align:right;}
 
   .panel{border-radius:14px;background:linear-gradient(145deg,rgba(24,71,119,.42),rgba(13,43,80,.42));border:1px solid rgba(157,196,236,.20);box-shadow:0 14px 34px rgba(0,0,0,.13);padding:16px 18px;margin-bottom:12px;}
   .panel h2{font-size:12.5px;margin:0 0 14px;color:var(--nx-heading);font-weight:700;display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid rgba(157,196,236,.12);}
@@ -210,28 +218,8 @@
     <div class="scroll">
 
       <div class="page active" data-page="overview">
-        <div class="kpi-row">
-          <div class="kpi-card blue">
-            <div class="kpi-label">Sales Value</div>
-            <div class="kpi-value" id="kpiValue">&mdash;</div>
-            <div class="kpi-sub" id="kpiValueSub"></div>
-          </div>
-          <div class="kpi-card orange">
-            <div class="kpi-label">Units Sold</div>
-            <div class="kpi-value" id="kpiUnits">&mdash;</div>
-            <div class="kpi-sub" id="kpiUnitsSub"></div>
-          </div>
-          <div class="kpi-card green">
-            <div class="kpi-label">Stores Trading</div>
-            <div class="kpi-value" id="kpiStores">&mdash;</div>
-            <div class="kpi-sub" id="kpiStoresSub"></div>
-          </div>
-          <div class="kpi-card blue">
-            <div class="kpi-label">Latest Month</div>
-            <div class="kpi-value" id="kpiMonth">&mdash;</div>
-            <div class="kpi-sub" id="kpiMonthSub"></div>
-          </div>
-        </div>
+        <div class="kpi-row" id="rollingKpiRow"></div>
+        <div class="kpi-footline" id="kpiFootline"></div>
 
         <div class="panel" id="insightsPanel">
           <h2>Executive Insights <span class="tag">auto-generated</span></h2>
@@ -257,6 +245,17 @@
           <div class="panel">
             <h2>Category Trend <span class="tag" id="categoryTrendTag"></span></h2>
             <div class="chart-wrap"><canvas id="categoryTrendChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid-2b">
+          <div class="panel">
+            <h2>Retail Segment <span class="tag">12M value share, vs prior 12M</span></h2>
+            <div id="segmentBars"></div>
+          </div>
+          <div class="panel">
+            <h2>Commercial Bucket <span class="tag">12M value share, vs prior 12M</span></h2>
+            <div id="bucketBars"></div>
           </div>
         </div>
 
@@ -563,6 +562,10 @@ async function mockFetchJson(relativePath) {
 
   if (path === 'insights/brands') return loadMockFile('insights_brands');
 
+  if (path === 'rolling_summary') return loadMockFile('rolling_summary');
+  if (path === 'bucket_summary') return loadMockFile('bucket_summary');
+  if (path === 'banner_bucket_summary') return loadMockFile('banner_bucket_summary');
+
   throw new Error(`No mock handler for route: ${path}`);
 }
 
@@ -693,20 +696,23 @@ async function loadScope() {
     + (mockCaveats.length ? ' · ' + mockCaveats.join(' · ') : '');
 
   const summary = await apiFetchJson('summary' + qs());
-  document.getElementById('kpiValue').textContent = fmtR(summary.sales_value);
-  document.getElementById('kpiUnits').textContent = fmtN(summary.sales_units);
-  document.getElementById('kpiStores').textContent = summary.store_count == null ? '—' : fmtN(summary.store_count);
-  document.getElementById('kpiMonth').textContent = fmtMonth(summary.month);
-  document.getElementById('kpiValueSub').textContent = currentClient || 'All clients';
-  document.getElementById('kpiUnitsSub').textContent = currentClient || 'All clients';
-  document.getElementById('kpiStoresSub').textContent = 'trading stores';
-  document.getElementById('kpiMonthSub').textContent = currentMonth ? 'selected month' : 'most recent data';
+  const rolling = await apiFetchJson('rolling_summary' + qs());
+  renderRollingKpis(rolling);
+  document.getElementById('kpiFootline').textContent =
+    `${summary.store_count == null ? '—' : fmtN(summary.store_count)} stores trading in ${fmtMonth(rolling.latest_month)}` +
+    (currentClient ? ` · ${currentClient}` : ' · All clients');
 
   const trend = await apiFetchJson('client_monthly' + qs());
   renderTrend(trend);
 
   const province = await apiFetchJson('province_monthly' + qs());
   renderProvince(province);
+
+  const bucket = await apiFetchJson('bucket_summary' + qs());
+  renderBucketBars('bucketBars', bucket);
+
+  const bannerBucket = await apiFetchJson('banner_bucket_summary' + qs());
+  renderBucketBars('segmentBars', bannerBucket);
 
   const storeQs = currentClient ? `?client=${encodeURIComponent(currentClient)}` : '';
   const [declining, growing, atRisk] = await Promise.all([
@@ -784,6 +790,61 @@ function renderProvince(rows) {
     el.appendChild(row);
   });
   if (!latest.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">No province data for this scope.</div>';
+}
+
+// Rolling KPI row: Sales Units/Value at MTD (vs Last Month %) and P3M/P6M/
+// P12M (each vs the immediately preceding equal-length period). Matches
+// the KPI cards from the existing Power BI report exactly (Carin,
+// 2026-08-13) -- built from get_rolling_summary, not the old single-month
+// summary endpoint.
+function renderRollingKpis(rolling) {
+  const deltaHtml = (pct) => {
+    if (pct == null) return '<span style="color:var(--nx-muted);">—</span>';
+    const up = pct >= 0;
+    return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(pct * 100).toFixed(0)}%</span>`;
+  };
+  const cards = [
+    { label: 'Sales Units MTD', value: fmtN(rolling.mtd?.sales_units), delta: rolling.mtd?.units_vs_pct, cls: 'orange', vs: 'vs Last Month' },
+    { label: 'Sales Value MTD', value: fmtR(rolling.mtd?.sales_value), delta: rolling.mtd?.value_vs_pct, cls: 'blue', vs: 'vs Last Month' },
+    { label: 'Sales Units P3M', value: fmtN(rolling.p3m?.sales_units), delta: rolling.p3m?.units_vs_pct, cls: 'orange', vs: 'vs PP' },
+    { label: 'Sales Value P3M', value: fmtR(rolling.p3m?.sales_value), delta: rolling.p3m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
+    { label: 'Sales Units P6M', value: fmtN(rolling.p6m?.sales_units), delta: rolling.p6m?.units_vs_pct, cls: 'orange', vs: 'vs PP' },
+    { label: 'Sales Value P6M', value: fmtR(rolling.p6m?.sales_value), delta: rolling.p6m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
+    { label: 'Sales Units P12M', value: fmtN(rolling.p12m?.sales_units), delta: rolling.p12m?.units_vs_pct, cls: 'orange', vs: 'vs PP' },
+    { label: 'Sales Value P12M', value: fmtR(rolling.p12m?.sales_value), delta: rolling.p12m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
+  ];
+  document.getElementById('rollingKpiRow').innerHTML = cards.map(c => `
+    <div class="kpi-card ${c.cls}">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.value}</div>
+      <div class="kpi-sub">${c.vs} % ${deltaHtml(c.delta)}</div>
+    </div>`).join('');
+}
+
+// Shared by the Retail Segment (banner_bucket_summary) and Commercial
+// Bucket (bucket_summary) panels -- same row shape (bar-list, not a dense
+// grid, per Carin's "not loving the Power BI look" feedback): name, a
+// value-share bar, the share %, and a colored vs-prior-12M delta.
+function renderBucketBars(elId, rows) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  const sorted = [...rows].sort((a, b) => (b.val_12m || 0) - (a.val_12m || 0));
+  const max = Math.max(1, ...sorted.map(r => Number(r.val_12m || 0)));
+  sorted.forEach(r => {
+    const pct = (Number(r.val_12m || 0) / max * 100).toFixed(1);
+    const share = r.val_12m_share == null ? '—' : (r.val_12m_share * 100).toFixed(0) + '%';
+    const d = r.val_12m_vs_pp;
+    const deltaHtml = d == null ? '<span style="color:var(--nx-muted);">—</span>'
+      : `<span class="delta ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d * 100).toFixed(0)}%</span>`;
+    const row = document.createElement('div');
+    row.className = 'segment-row';
+    row.innerHTML = `<div class="segment-label">${r.bucket}</div>
+      <div class="bar-track"><div class="bar-seg" style="width:${pct}%"></div></div>
+      <div class="segment-share">${share}</div>
+      <div class="bar-val">${deltaHtml}</div>`;
+    el.appendChild(row);
+  });
+  if (!sorted.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">No data for this scope.</div>';
 }
 
 function renderStoreMovers(declining, growing, atRisk) {
