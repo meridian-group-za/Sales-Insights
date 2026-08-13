@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Insights Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#003B71;
+    --navy2:#0b2a4a;
+    --navy3:#123a63;
+    --orange:#FF6C0E;
+    --bg:#eef3f7;
+    --card:#fff;
+    --line:#dbe5ee;
+    --muted:#60758a;
+    --text:#102235;
+    --good:#1f9d6b;
+    --bad:#c93b3b;
+    --warn:#d9a72e;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Montserrat','Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);}
+
+  header{height:46px;background:linear-gradient(135deg,var(--navy),var(--navy3));border-bottom:3px solid var(--orange);display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:#fff;}
+  header h1{margin:0;font-size:15px;font-weight:800;letter-spacing:.1px;}
+  header .sub{font-size:9.5px;color:#b5cade;margin-top:1px;}
+  .header-controls{display:flex;gap:8px;align-items:center;}
+  .header-controls select{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:5px;padding:4px 8px;font-size:11px;font-family:inherit;}
+  .header-controls select option{color:#000;}
+  .auth-status{font-size:10.5px;color:#b5cade;}
+  .header-controls a{color:#b5cade;font-size:10.5px;text-decoration:none;cursor:pointer;}
+  .header-controls a:hover{color:#fff;}
+
+  .filter-bar{height:43px;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:7px;align-items:center;padding:6px 18px;position:sticky;top:0;z-index:90;}
+  .filter-group{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+  .filter-bar label{font-size:8.5px;color:#8193a6;text-transform:uppercase;font-weight:800;letter-spacing:.35px;}
+  .filter-bar select{height:27px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:10px;color:#30475c;font-family:inherit;}
+  .filter-bar .meta-tag{font-size:9.5px;color:#8a9aab;font-weight:700;margin-left:auto;}
+
+  main{max-width:1390px;margin:0 auto;padding:14px 16px 30px;}
+
+  .icon-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;}
+  .icon-kpi-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:12px;padding:12px 14px;box-shadow:0 3px 12px rgba(10,39,71,.06);min-height:76px;}
+  .icon-kpi-card.orange{border-left-color:var(--orange);}
+  .icon-kpi-card.green{border-left-color:var(--good);}
+  .icon-kpi-card.blue{border-left-color:var(--navy);}
+  .icon-kpi-card .kpi-label{font-size:8.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:800;}
+  .icon-kpi-card .kpi-value{font-size:22px;font-weight:900;color:var(--navy);line-height:1.15;margin-top:4px;}
+  .icon-kpi-card .kpi-sub{font-size:9px;color:#8696a8;font-weight:700;margin-top:3px;}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 14px;box-shadow:0 3px 12px rgba(10,39,71,.06);min-width:0;margin-bottom:8px;}
+  .panel h2{font-size:12px;margin:0 0 10px;color:var(--navy);font-weight:900;display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid #edf1f5;}
+  .panel h2 .tag{font-size:9px;color:#8a9aab;font-weight:700;}
+
+  .grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:8px;}
+  .grid-2b{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+  table.mini{width:100%;border-collapse:collapse;font-size:11px;}
+  table.mini th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);font-weight:800;border-bottom:1px solid var(--line);padding:5px 6px;}
+  table.mini td{padding:6px 6px;border-bottom:1px solid #f1f4f7;color:var(--text);}
+  table.mini tr:last-child td{border-bottom:none;}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:9.5px;font-weight:800;}
+  .pill.good{background:#e8f7ef;color:var(--good);}
+  .pill.bad{background:#fdeeee;color:var(--bad);}
+  .pill.warn{background:#fff6df;color:#9a6f00;}
+
+  .bar-row{display:grid;grid-template-columns:110px 1fr 70px;gap:8px;align-items:center;margin:6px 0;}
+  .bar-label{font-size:9.5px;color:#24394d;font-weight:800;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bar-track{height:14px;background:#e3e9ef;border-radius:999px;overflow:hidden;}
+  .bar-seg{height:100%;border-radius:999px;background:var(--navy);}
+  .bar-val{font-size:9.5px;color:var(--muted);font-weight:700;}
+
+  .chart-wrap{position:relative;height:220px;}
+
+  /* AUTH OVERLAY */
+  body.auth-pending main, body.auth-pending .filter-bar{display:none;}
+  #authOverlay{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy),var(--navy3));display:flex;align-items:center;justify-content:center;z-index:1000;}
+  #authOverlay .box{background:#fff;border-radius:16px;padding:40px 44px;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+  #authOverlay h2{margin:0 0 8px;color:var(--navy);font-size:18px;}
+  #authOverlay p{margin:0 0 22px;color:var(--muted);font-size:12.5px;line-height:1.5;}
+  #authOverlay button{background:var(--orange);color:#fff;border:none;border-radius:8px;padding:12px 26px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
+  #authOverlay button:hover{background:#e65f00;}
+  #authError{color:var(--bad);font-size:11px;margin-top:14px;min-height:14px;}
+  #authLoadingBox{display:none;}
+  #authLoadingBox.active{display:block;}
+  #authLoadingBox .spinner{width:34px;height:34px;border:3px solid #eef3f7;border-top-color:var(--orange);border-radius:50%;margin:0 auto 16px;animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body class="auth-pending">
+
+<div id="authOverlay">
+  <div class="box">
+    <h2>Sales Insights</h2>
+    <p>Sign in with your Meridian Group Microsoft account to view sales performance across all clients.</p>
+    <div id="authLoadingBox">
+      <div class="spinner"></div>
+    </div>
+    <button id="signInBtn">Sign in with Microsoft</button>
+    <div id="authError"></div>
+  </div>
+</div>
+
+<header>
+  <div>
+    <h1>Sales Insights</h1>
+    <div class="sub">Meridian Group &middot; monthly sell-out performance</div>
+  </div>
+  <div class="header-controls">
+    <span class="auth-status" id="authStatus"></span>
+    <a href="#" id="signOutBtn">Sign out</a>
+  </div>
+</header>
+
+<div class="filter-bar">
+  <div class="filter-group">
+    <label>Client</label>
+    <select id="clientSelect"><option value="">All Clients</option></select>
+  </div>
+  <div class="meta-tag" id="metaTag"></div>
+</div>
+
+<main>
+  <div class="icon-kpi-row">
+    <div class="icon-kpi-card blue">
+      <div class="kpi-label">Sales Value</div>
+      <div class="kpi-value" id="kpiValue">&mdash;</div>
+      <div class="kpi-sub" id="kpiValueSub"></div>
+    </div>
+    <div class="icon-kpi-card orange">
+      <div class="kpi-label">Units Sold</div>
+      <div class="kpi-value" id="kpiUnits">&mdash;</div>
+      <div class="kpi-sub" id="kpiUnitsSub"></div>
+    </div>
+    <div class="icon-kpi-card green">
+      <div class="kpi-label">Stores Trading</div>
+      <div class="kpi-value" id="kpiStores">&mdash;</div>
+      <div class="kpi-sub" id="kpiStoresSub"></div>
+    </div>
+    <div class="icon-kpi-card blue">
+      <div class="kpi-label">Latest Month</div>
+      <div class="kpi-value" id="kpiMonth">&mdash;</div>
+      <div class="kpi-sub" id="kpiMonthSub"></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Monthly Sales Trend <span class="tag" id="trendTag"></span></h2>
+      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Sales by Province <span class="tag">latest month</span></h2>
+      <div id="provinceBars"></div>
+    </div>
+  </div>
+
+  <div class="grid-2b">
+    <div class="panel">
+      <h2>Top Mover Stores <span class="tag">latest month</span></h2>
+      <table class="mini" id="storeMoversTable">
+        <thead><tr><th>Store</th><th>Signal</th><th>6M Growth</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Top Mover Brands <span class="tag">latest month</span></h2>
+      <table class="mini" id="brandMoversTable">
+        <thead><tr><th>Brand</th><th>Signal</th><th>Share vs Peer</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+<script>
+// =========================================================================
+// CONFIG — same Meridian Function App / Entra ID app registration as
+// stockfix-dashboard, just a different route (sales-data) and its own
+// redirectUri. The redirectUri below must be added to the Entra ID app's
+// registered redirect URIs before sign-in will work from this site.
+// =========================================================================
+const MSAL_CONFIG = {
+  clientId: "2e19d14d-6914-4f52-8bbb-119481314eef",
+  tenantId: "cbe83df2-b350-4dab-8d5f-f78d21fe7d27", // Meridian Group tenant
+  redirectUri: "https://meridian-group-za.github.io/Sales-Insights/",
+};
+const SALES_API_BASE = "https://stockfix-validate-fdhkefdwc6dmejda.northeurope-01.azurewebsites.net/api/sales-data/";
+const API_SCOPE = "api://878107a0-1dfb-4697-a7a1-615e47e9f67b/access_as_user";
+
+const msalInstance = new msal.PublicClientApplication({
+  auth: {
+    clientId: MSAL_CONFIG.clientId,
+    authority: `https://login.microsoftonline.com/${MSAL_CONFIG.tenantId}`,
+    redirectUri: MSAL_CONFIG.redirectUri,
+  },
+  cache: { cacheLocation: "sessionStorage" },
+});
+
+function setAuthLoading(on) {
+  const box = document.getElementById("authLoadingBox");
+  const btn = document.getElementById("signInBtn");
+  if (box) box.classList.toggle("active", on);
+  if (btn) btn.style.display = on ? "none" : "block";
+}
+
+document.getElementById("signInBtn").addEventListener("click", () => {
+  msalInstance.loginRedirect({ scopes: [API_SCOPE] });
+});
+document.getElementById("signOutBtn").addEventListener("click", (e) => {
+  e.preventDefault();
+  msalInstance.logoutRedirect();
+});
+
+msalInstance.handleRedirectPromise().then(async (result) => {
+  if (result) {
+    setAuthLoading(true);
+    await boot();
+  } else {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      setAuthLoading(true);
+      try {
+        await boot();
+      } catch (e) {
+        console.warn("Silent init failed, showing login screen:", e);
+        setAuthLoading(false);
+      }
+    }
+  }
+}).catch(e => console.error("handleRedirectPromise error:", e));
+
+async function getApiToken() {
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length === 0) throw new Error("Not signed in");
+  try {
+    const result = await msalInstance.acquireTokenSilent({ scopes: [API_SCOPE], account: accounts[0] });
+    return result.accessToken;
+  } catch (e) {
+    await msalInstance.acquireTokenRedirect({ scopes: [API_SCOPE], account: accounts[0] });
+    return null;
+  }
+}
+
+async function apiFetchJson(relativePath) {
+  const headers = { Authorization: `Bearer ${await getApiToken()}` };
+  const res = await fetch(SALES_API_BASE + relativePath, { headers });
+  if (!res.ok) throw new Error(`API request failed (${res.status}): ${relativePath}`);
+  return res.json();
+}
+
+// =========================================================================
+// Formatting helpers
+// =========================================================================
+const fmtR = (v) => v == null ? '—' : 'R' + Number(v).toLocaleString('en-ZA', { maximumFractionDigits: 0 });
+const fmtN = (v) => v == null ? '—' : Number(v).toLocaleString('en-ZA', { maximumFractionDigits: 0 });
+const fmtPct = (v) => v == null ? '—' : (Number(v) * 100).toFixed(1) + '%';
+const fmtMonth = (v) => {
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d) ? String(v).slice(0, 10) : d.toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' });
+};
+
+// =========================================================================
+// Data loading
+// =========================================================================
+let trendChart = null;
+let currentClient = '';
+
+async function boot() {
+  document.body.classList.remove('auth-pending');
+  const accounts = msalInstance.getAllAccounts();
+  document.getElementById('authStatus').textContent = accounts[0]?.username || '';
+
+  const meta = await apiFetchJson('meta');
+  document.getElementById('metaTag').textContent =
+    `${fmtN(meta.row_count)} rows · ${meta.clients?.length || 0} clients · refreshed ${meta.generated_at ? new Date(meta.generated_at).toLocaleDateString('en-ZA') : '—'}`;
+
+  const sel = document.getElementById('clientSelect');
+  (meta.clients || []).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => { currentClient = sel.value; loadScope(); });
+
+  await loadScope();
+}
+
+async function loadScope() {
+  const clientParam = currentClient ? `?client=${encodeURIComponent(currentClient)}` : '';
+
+  const summary = await apiFetchJson('summary' + clientParam);
+  document.getElementById('kpiValue').textContent = fmtR(summary.sales_value);
+  document.getElementById('kpiUnits').textContent = fmtN(summary.sales_units);
+  document.getElementById('kpiStores').textContent = fmtN(summary.store_count);
+  document.getElementById('kpiMonth').textContent = fmtMonth(summary.month);
+  document.getElementById('kpiValueSub').textContent = currentClient || 'All clients';
+  document.getElementById('kpiUnitsSub').textContent = currentClient || 'All clients';
+  document.getElementById('kpiStoresSub').textContent = 'trading stores';
+  document.getElementById('kpiMonthSub').textContent = 'most recent data';
+
+  const trend = await apiFetchJson('client_monthly' + clientParam);
+  renderTrend(trend);
+
+  const province = await apiFetchJson('province_monthly' + clientParam);
+  renderProvince(province);
+
+  const storeParams = currentClient ? `?client=${encodeURIComponent(currentClient)}` : '';
+  const [declining, growing, atRisk] = await Promise.all([
+    apiFetchJson(`insights/stores${storeParams}${storeParams ? '&' : '?'}type=declining`),
+    apiFetchJson(`insights/stores${storeParams}${storeParams ? '&' : '?'}type=growing`),
+    apiFetchJson(`insights/stores${storeParams}${storeParams ? '&' : '?'}type=at_risk`),
+  ]);
+  renderStoreMovers(declining, growing, atRisk);
+
+  const brands = await apiFetchJson('insights/brands' + clientParam);
+  renderBrandMovers(brands);
+}
+
+function renderTrend(rows) {
+  document.getElementById('trendTag').textContent = currentClient || 'all clients';
+  // rows are either {month, sales_value, ...} (single client) or
+  // {client, month, sales_value, ...} (all clients) — aggregate the latter
+  // by month so the trend line always reads at the selected scope.
+  const byMonth = {};
+  rows.forEach(r => {
+    const m = r.month;
+    byMonth[m] = (byMonth[m] || 0) + Number(r.sales_value || 0);
+  });
+  const months = Object.keys(byMonth).sort();
+  const values = months.map(m => byMonth[m]);
+
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: months.map(fmtMonth),
+      datasets: [{
+        label: 'Sales value',
+        data: values,
+        borderColor: '#003B71',
+        backgroundColor: 'rgba(0,59,113,0.08)',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: true,
+        tension: 0.25,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: (v) => fmtR(v) }, grid: { color: '#f1f4f7' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderProvince(rows) {
+  const el = document.getElementById('provinceBars');
+  el.innerHTML = '';
+  const latestMonth = rows.reduce((max, r) => (!max || r.month > max) ? r.month : max, null);
+  const latest = rows.filter(r => r.month === latestMonth).sort((a, b) => b.sales_value - a.sales_value);
+  const max = Math.max(1, ...latest.map(r => Number(r.sales_value || 0)));
+  latest.forEach(r => {
+    const pct = (Number(r.sales_value || 0) / max * 100).toFixed(1);
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `<div class="bar-label">${r.province || 'Unknown'}</div>
+      <div class="bar-track"><div class="bar-seg" style="width:${pct}%"></div></div>
+      <div class="bar-val">${fmtR(r.sales_value)}</div>`;
+    el.appendChild(row);
+  });
+  if (!latest.length) el.innerHTML = '<div style="font-size:11px;color:var(--muted);">No province data for this scope.</div>';
+}
+
+function renderStoreMovers(declining, growing, atRisk) {
+  const tbody = document.querySelector('#storeMoversTable tbody');
+  tbody.innerHTML = '';
+  const rows = [
+    ...growing.slice(0, 5).map(r => ({ r, kind: 'good', label: 'Growing' })),
+    ...declining.slice(0, 5).map(r => ({ r, kind: 'bad', label: 'Declining' })),
+    ...atRisk.slice(0, 5).map(r => ({ r, kind: 'warn', label: 'At risk' })),
+  ];
+  rows.forEach(({ r, kind, label }) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r['cleaned store name'] || '—'}</td>
+      <td><span class="pill ${kind}">${label}</span></td>
+      <td>${fmtPct(r['Growth_6M'])}</td>`;
+    tbody.appendChild(tr);
+  });
+  if (!rows.length) tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);">No mover data for this scope.</td></tr>';
+}
+
+function renderBrandMovers(rows) {
+  const tbody = document.querySelector('#brandMoversTable tbody');
+  tbody.innerHTML = '';
+  rows.slice(0, 10).forEach(r => {
+    const kind = r.insight_type === 'gaining_share' ? 'good' : 'bad';
+    const label = r.insight_type === 'gaining_share' ? 'Gaining' : 'Losing';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r['cleaned brand'] || '—'}</td>
+      <td><span class="pill ${kind}">${label}</span></td>
+      <td>${fmtPct(r['Brand_Share_vs_Peer'])}</td>`;
+    tbody.appendChild(tr);
+  });
+  if (!rows.length) tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);">No brand mover data for this scope.</td></tr>';
+}
+</script>
+</body>
+</html>
