@@ -250,26 +250,34 @@
           <div id="insightCards"></div>
         </div>
 
-        <div class="grid-2">
-          <div class="panel">
-            <h2>Monthly Sales Trend <span class="tag" id="trendTag"></span></h2>
-            <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
-          </div>
-          <div class="panel">
-            <h2>Sales by Province <span class="tag">latest month</span></h2>
-            <div id="provinceBars"></div>
+        <div class="panel">
+          <h2>Monthly Sales Trend <span class="tag" id="trendTag"></span></h2>
+          <div class="grid-2b">
+            <div>
+              <div class="chart-label">Value (Rand)</div>
+              <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+            </div>
+            <div>
+              <div class="chart-label">Volume (units)</div>
+              <div class="chart-wrap"><canvas id="trendUnitsChart"></canvas></div>
+            </div>
           </div>
         </div>
 
         <div class="grid-2">
           <div class="panel">
+            <h2>Sales by Province <span class="tag">latest month</span></h2>
+            <div id="provinceBars"></div>
+          </div>
+          <div class="panel">
             <h2>Category Mix <span class="tag">latest month</span></h2>
             <div id="categoryBars"></div>
           </div>
-          <div class="panel">
-            <h2>Category Trend <span class="tag" id="categoryTrendTag"></span></h2>
-            <div class="chart-wrap"><canvas id="categoryTrendChart"></canvas></div>
-          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Category Trend <span class="tag" id="categoryTrendTag"></span></h2>
+          <div class="chart-wrap"><canvas id="categoryTrendChart"></canvas></div>
         </div>
 
         <div class="grid-2b">
@@ -718,6 +726,7 @@ function colorFor(label) {
 // Data loading
 // =========================================================================
 let trendChart = null;
+let trendUnitsChart = null;
 let currentClient = '';
 let currentMonth = '';
 let currentCategory = '';
@@ -871,37 +880,36 @@ function renderTrend(rows) {
   const byMonth = {};
   rows.forEach(r => {
     const m = r.month;
-    byMonth[m] = (byMonth[m] || 0) + Number(r.sales_value || 0);
+    byMonth[m] = byMonth[m] || { value: 0, units: 0 };
+    byMonth[m].value += Number(r.sales_value || 0);
+    byMonth[m].units += Number(r.sales_units || 0);
   });
   const months = Object.keys(byMonth).sort();
-  const values = months.map(m => byMonth[m]);
+  const labels = months.map(fmtMonth);
 
-  const ctx = document.getElementById('trendChart').getContext('2d');
-  if (trendChart) trendChart.destroy();
-  trendChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: months.map(fmtMonth),
-      datasets: [{
-        label: 'Sales value',
-        data: values,
-        borderColor: '#eb7a2b',
-        backgroundColor: 'rgba(235,122,43,0.10)',
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        fill: true,
-        tension: 0.25,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { ticks: { color: '#78a3cf', callback: (v) => fmtR(v) }, grid: { color: 'rgba(157,196,236,.10)' } },
-        x: { ticks: { color: '#78a3cf' }, grid: { display: false } }
-      }
+  const mkOpts = (fmt) => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { ticks: { color: '#78a3cf', callback: fmt }, grid: { color: 'rgba(157,196,236,.10)' } },
+      x: { ticks: { color: '#78a3cf' }, grid: { display: false } }
     }
+  });
+
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Sales value', data: months.map(m => byMonth[m].value),
+      borderColor: '#eb7a2b', backgroundColor: 'rgba(235,122,43,0.10)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.25 }] },
+    options: mkOpts(fmtR),
+  });
+
+  if (trendUnitsChart) trendUnitsChart.destroy();
+  trendUnitsChart = new Chart(document.getElementById('trendUnitsChart').getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Sales units', data: months.map(m => byMonth[m].units),
+      borderColor: '#3e8fd8', backgroundColor: 'rgba(62,143,216,0.10)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.25 }] },
+    options: mkOpts(fmtN),
   });
 }
 
