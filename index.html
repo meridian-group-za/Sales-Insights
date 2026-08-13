@@ -81,8 +81,10 @@
   .page{display:none;}
   .page.active{display:block;}
 
-  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px;}
-  .kpi-card{border-radius:12px;background:linear-gradient(145deg,rgba(24,71,119,.52),rgba(13,43,80,.52));border:1px solid rgba(157,196,236,.20);box-shadow:0 14px 34px rgba(0,0,0,.15);padding:12px 14px;transition:transform .18s ease,border-color .18s ease;}
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:6px;}
+  .kpi-card .kpi-spark{margin-top:8px;height:24px;}
+  .kpi-card .kpi-spark svg{display:block;width:100%;height:100%;}
+  .kpi-card{border-radius:12px;background:linear-gradient(145deg,rgba(24,71,119,.52),rgba(13,43,80,.52));border:1px solid rgba(157,196,236,.20);border-left:3px solid var(--nx-orange);box-shadow:0 14px 34px rgba(0,0,0,.15);padding:12px 14px;transition:transform .18s ease,border-color .18s ease;}
   .kpi-card:hover{transform:translateY(-2px);border-color:rgba(157,196,236,.32);}
   .kpi-card .kpi-label{font-size:8.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--nx-muted);font-weight:700;}
   .kpi-card .kpi-value{font-size:19px;font-weight:700;color:var(--nx-heading);line-height:1.2;margin-top:5px;}
@@ -671,6 +673,7 @@ async function mockFetchJson(relativePath) {
   }
   if (path === 'monthly_trend') return loadMockFile('monthly_trend');
   if (path === 'price_mix') return loadMockFile('price_mix');
+  if (path === 'kpi_cards') return loadMockFile('kpi_cards');
 
   throw new Error(`No mock handler for route: ${path}`);
 }
@@ -836,10 +839,10 @@ async function loadScope() {
     + (mockCaveats.length ? ' · ' + mockCaveats.join(' · ') : '');
 
   const summary = await apiFetchJson('summary' + qs());
-  const rolling = await apiFetchJson('rolling_summary' + qs());
-  renderRollingKpis(rolling);
+  const kpi = await apiFetchJson('kpi_cards' + qs());
+  renderKpiCards(kpi);
   document.getElementById('kpiFootline').textContent =
-    `${summary.store_count == null ? '—' : fmtN(summary.store_count)} stores trading in ${fmtMonth(rolling.latest_month)}` +
+    `${summary.store_count == null ? '—' : fmtN(summary.store_count)} stores trading in ${fmtMonth(kpi.latest_month)}` +
     (currentClient ? ` · ${currentClient}` : ' · All clients');
 
   const trend = await apiFetchJson('client_monthly' + qs());
@@ -936,32 +939,29 @@ function renderProvince(rows) {
 // the KPI cards from the existing Power BI report exactly (Carin,
 // 2026-08-13) -- built from get_rolling_summary, not the old single-month
 // summary endpoint.
-function renderRollingKpis(rolling) {
+// Executive Overview KPI row v2 (Carin's Claude Design mockup, 2026-08-13):
+// 5 cards, each with a 12-month sparkline and its own accent color, vs
+// last month. "Against Target" and "Momentum" from that mockup aren't
+// here -- both need inputs we don't have (a sales target/quota, and an
+// undefined momentum formula); see get_kpi_cards' docstring.
+const KPI_CARD_COLOR = { value: '#eb7a2b', units: '#3e8fd8', avg_price: '#5fb684', value_per_store: '#c77dd6', stores: '#e0b34a' };
+function renderKpiCards(kpi) {
   const deltaHtml = (pct) => {
     if (pct == null) return '<span style="color:var(--nx-muted);">—</span>';
     const up = pct >= 0;
     return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(pct * 100).toFixed(0)}%</span>`;
   };
-  // Units and Value each get their own row (grid is 4 columns, 8 cards --
-  // grouping by metric instead of interleaving MTD/P3M/P6M/P12M per metric
-  // means row 1 = all Units, row 2 = all Value, easier to scan than
-  // alternating every other card).
-  const cards = [
-    { label: 'Sales Units MTD', value: fmtN(rolling.mtd?.sales_units), delta: rolling.mtd?.units_vs_pct, cls: 'orange', vs: 'vs Last Month' },
-    { label: 'Sales Units P3M', value: fmtN(rolling.p3m?.sales_units), delta: rolling.p3m?.units_vs_pct, cls: 'orange', vs: 'vs PP' },
-    { label: 'Sales Units P6M', value: fmtN(rolling.p6m?.sales_units), delta: rolling.p6m?.units_vs_pct, cls: 'orange', vs: 'vs PP' },
-    { label: 'Sales Units P12M', value: fmtN(rolling.p12m?.sales_units), delta: rolling.p12m?.units_vs_pct, cls: 'orange', vs: 'vs PP' },
-    { label: 'Sales Value MTD', value: fmtR(rolling.mtd?.sales_value), delta: rolling.mtd?.value_vs_pct, cls: 'blue', vs: 'vs Last Month' },
-    { label: 'Sales Value P3M', value: fmtR(rolling.p3m?.sales_value), delta: rolling.p3m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
-    { label: 'Sales Value P6M', value: fmtR(rolling.p6m?.sales_value), delta: rolling.p6m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
-    { label: 'Sales Value P12M', value: fmtR(rolling.p12m?.sales_value), delta: rolling.p12m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
-  ];
-  document.getElementById('rollingKpiRow').innerHTML = cards.map(c => `
-    <div class="kpi-card ${c.cls}">
-      <div class="kpi-label">${c.label}</div>
-      <div class="kpi-value">${c.value}</div>
-      <div class="kpi-sub">${c.vs} % ${deltaHtml(c.delta)}</div>
-    </div>`).join('');
+  const fmtByKind = { currency: fmtR, number: fmtN };
+  document.getElementById('rollingKpiRow').innerHTML = (kpi.cards || []).map(c => {
+    const fmt = fmtByKind[c.format] || fmtN;
+    const color = KPI_CARD_COLOR[c.key] || '#eb7a2b';
+    return `<div class="kpi-card" style="border-left-color:${color}">
+      <div class="kpi-label">${c.label.toUpperCase()}</div>
+      <div class="kpi-value">${fmt(c.value)}</div>
+      <div class="kpi-sub">vs Last Month ${deltaHtml(c.vs_prev_pct)}</div>
+      <div class="kpi-spark">${sparkline(c.trend, color)}</div>
+    </div>`;
+  }).join('');
 }
 
 // Shared by the Retail Segment (banner_bucket_summary) and Commercial

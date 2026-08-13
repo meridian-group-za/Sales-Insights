@@ -47,6 +47,7 @@ def main():
     dump('dimension_banner', sq.get_dimension_breakdown(con, None, {'dimension': 'banner'}))
     dump('monthly_trend', sq.get_monthly_trend(con, None, {}))
     dump('price_mix', sq.get_price_mix(con, None, {}))
+    dump('kpi_cards', sq.get_kpi_cards(con, None, {}))
     dump('insights_stores_declining', sq.get_insights_stores(con, None, {'type': 'declining'}))
     dump('insights_stores_growing', sq.get_insights_stores(con, None, {'type': 'growing'}))
     dump('insights_stores_at_risk', sq.get_insights_stores(con, None, {'type': 'at_risk'}))
