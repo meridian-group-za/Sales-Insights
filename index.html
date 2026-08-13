@@ -115,6 +115,15 @@
   .pill.good{background:rgba(95,182,132,.16);color:var(--good);}
   .pill.bad{background:rgba(224,113,79,.16);color:var(--bad);}
   .pill.warn{background:rgba(224,179,74,.16);color:var(--warn);}
+  .pill.grey{background:rgba(157,196,236,.12);color:var(--nx-muted);}
+
+  .tier-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .tier-tab{background:rgba(157,196,236,.08);border:1px solid rgba(157,196,236,.18);color:var(--nx-text);border-radius:999px;padding:5px 12px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .tier-tab:hover{background:rgba(157,196,236,.14);}
+  .tier-tab.active{background:var(--nx-orange);border-color:var(--nx-orange);color:#fff;}
+  .table-scroll{max-height:560px;overflow:auto;}
+  .table-scroll thead th{position:sticky;top:0;background:#0d2846;z-index:1;}
+  .table-note{font-size:10px;color:var(--nx-muted);margin-top:10px;font-style:italic;}
 
   .bar-row{display:grid;grid-template-columns:110px 1fr 74px;gap:8px;align-items:center;margin:7px 0;}
   .bar-label{font-size:9.5px;color:var(--nx-text);font-weight:600;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -306,10 +315,23 @@
         </div></div>
       </div>
       <div class="page" data-page="store">
-        <div class="panel"><div class="coming-soon">
-          <div class="cs-icon">◷</div><h3>Store Performance</h3>
-          <p>Where is the business won or lost? Top/bottom stores, growth ranking, new/lost stores.</p>
-        </div></div>
+        <div class="panel">
+          <h2>Store Performance <span class="tag">top 500 stores by 12M value</span></h2>
+          <div class="tier-tabs" id="tierTabs"></div>
+          <div class="table-scroll">
+            <table class="mini" id="storePerfTable">
+              <thead><tr>
+                <th>Store</th><th>Banner</th><th>Client</th><th>Top Brand</th>
+                <th>Sales Value 12M</th><th>vs PP</th>
+                <th>Sales Value 6M</th><th>vs PP</th>
+                <th>Sales Units 12M</th><th>vs PP</th>
+                <th>Tier</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="table-note">Tier is provisional (Growth_6M/ConsecutiveDeclineMonths-based) — pending the exact "Mid-Term Store Performance" formula from the Power BI report.</div>
+        </div>
       </div>
       <div class="page" data-page="opportunity">
         <div class="panel"><div class="coming-soon">
@@ -374,6 +396,10 @@ function goToPage(key) {
   document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.getAttribute('data-page') === key));
   const page = PAGES.find(p => p.key === key);
   document.getElementById('pageTitle').textContent = page ? page.label : '';
+  // Lazy-load: the store table is a heavier query (full grouped scan of
+  // sales_fact) than anything on Executive Overview, so it only runs the
+  // first time this page is actually opened, not on every boot().
+  if (key === 'store' && !storePerfLoaded) loadStorePerformance();
 }
 renderNav();
 
@@ -565,6 +591,7 @@ async function mockFetchJson(relativePath) {
   if (path === 'rolling_summary') return loadMockFile('rolling_summary');
   if (path === 'bucket_summary') return loadMockFile('bucket_summary');
   if (path === 'banner_bucket_summary') return loadMockFile('banner_bucket_summary');
+  if (path === 'store_performance') return loadMockFile('store_performance');
 
   throw new Error(`No mock handler for route: ${path}`);
 }
@@ -683,6 +710,13 @@ async function boot() {
 }
 
 async function loadScope() {
+  // Store Performance is lazy-loaded and not re-fetched by loadScope
+  // itself (it's a heavier query) -- invalidate the cache on any filter
+  // change so the next visit to that page reflects the new scope, and
+  // refresh immediately if it's the page currently on screen.
+  storePerfLoaded = false;
+  if (document.querySelector('.page[data-page="store"]')?.classList.contains('active')) loadStorePerformance();
+
   // Mock-mode fidelity gaps (see mockFetchJson's comment): category
   // filtering ignores a simultaneous client filter, and brand filtering
   // doesn't affect summary/trend/province at all. Surface that plainly
@@ -1009,6 +1043,67 @@ function renderInsights({ declining, growing, atRisk, brands, category, summary 
   const el = document.getElementById('insightCards');
   el.innerHTML = cards.map(c => `<div class="insight-card ${c.kind}"><div class="badge">${c.icon}</div><div class="txt">${c.html}</div></div>`).join('');
   if (!cards.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">Not enough data for insights at this scope.</div>';
+}
+
+// =========================================================================
+// Store Performance page
+// =========================================================================
+let storePerfLoaded = false;
+let storePerfRows = [];
+let storePerfTier = '';
+
+const TIER_STYLE = {
+  'Strong Growth - Maintain': 'good',
+  'Moderate Growth - Opportunity': 'warn',
+  'Mixed (Declining on Value)': 'warn',
+  'Mixed (Declining on Volume)': 'warn',
+  'Declining - Intervention needed': 'bad',
+  'No Data - Validate data': 'grey',
+};
+
+async function loadStorePerformance() {
+  storePerfLoaded = true;
+  const rows = await apiFetchJson('store_performance' + qs());
+  storePerfRows = rows;
+  renderTierTabs(rows);
+  renderStorePerfTable(rows);
+}
+
+function renderTierTabs(rows) {
+  const counts = {};
+  rows.forEach(r => { counts[r.tier] = (counts[r.tier] || 0) + 1; });
+  const tiers = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const tabs = [{ key: '', label: `All (${rows.length})` }, ...tiers.map(t => ({ key: t, label: `${t} (${counts[t]})` }))];
+  const el = document.getElementById('tierTabs');
+  el.innerHTML = tabs.map(t => `<button type="button" class="tier-tab${t.key === storePerfTier ? ' active' : ''}" data-tier="${t.key}">${t.label}</button>`).join('');
+  el.querySelectorAll('.tier-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      storePerfTier = btn.getAttribute('data-tier');
+      el.querySelectorAll('.tier-tab').forEach(b => b.classList.toggle('active', b === btn));
+      renderStorePerfTable(storePerfRows);
+    });
+  });
+}
+
+function renderStorePerfTable(rows) {
+  const tbody = document.querySelector('#storePerfTable tbody');
+  const filtered = storePerfTier ? rows.filter(r => r.tier === storePerfTier) : rows;
+  const deltaHtml = (d) => {
+    if (d == null) return '<span style="color:var(--nx-muted);">—</span>';
+    return `<span class="delta ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d * 100).toFixed(0)}%</span>`;
+  };
+  tbody.innerHTML = filtered.map(r => `
+    <tr>
+      <td>${titleCase(r.store_name) || '—'}</td>
+      <td>${titleCase(r.banner) || '—'}</td>
+      <td>${r.client || '—'}</td>
+      <td>${titleCase(r.top_brand) || '—'}</td>
+      <td>${fmtR(r.val_12m)}</td><td>${deltaHtml(r.val_12m_vs_pp)}</td>
+      <td>${fmtR(r.val_6m)}</td><td>${deltaHtml(r.val_6m_vs_pp)}</td>
+      <td>${fmtN(r.vol_12m)}</td><td>${deltaHtml(r.vol_12m_vs_pp)}</td>
+      <td><span class="pill ${TIER_STYLE[r.tier] || 'grey'}">${r.tier}</span></td>
+    </tr>`).join('');
+  if (!filtered.length) tbody.innerHTML = '<tr><td colspan="11" style="color:var(--nx-muted);">No stores match this tier.</td></tr>';
 }
 </script>
 </body>

@@ -41,6 +41,7 @@ def main():
     dump('rolling_summary', sq.get_rolling_summary(con, None, {}))
     dump('bucket_summary', sq.get_bucket_summary(con, None, {}))
     dump('banner_bucket_summary', sq.get_banner_bucket_summary(con, None, {}))
+    dump('store_performance', sq.get_store_performance(con, None, {'limit': 500}))
     dump('insights_stores_declining', sq.get_insights_stores(con, None, {'type': 'declining'}))
     dump('insights_stores_growing', sq.get_insights_stores(con, None, {'type': 'growing'}))
     dump('insights_stores_at_risk', sq.get_insights_stores(con, None, {'type': 'at_risk'}))
