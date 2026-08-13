@@ -125,6 +125,21 @@
   .table-scroll thead th{position:sticky;top:0;background:#0d2846;z-index:1;}
   .table-note{font-size:10px;color:var(--nx-muted);margin-top:10px;font-style:italic;}
 
+  .chart-label{font-size:11px;font-weight:700;color:var(--nx-heading);margin-bottom:8px;}
+  .key-points{background:rgba(235,122,43,.06);border-left:3px solid var(--nx-orange);border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:14px;font-size:11.5px;line-height:1.7;color:var(--nx-text);}
+  .key-points ul{margin:0;padding-left:18px;}
+  .key-points b{color:var(--nx-heading);}
+  .metric-toggle{display:flex;gap:6px;margin-bottom:14px;}
+  .metric-toggle button{background:rgba(157,196,236,.08);border:1px solid rgba(157,196,236,.18);color:var(--nx-text);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .metric-toggle button.active{background:var(--nx-orange);border-color:var(--nx-orange);color:#fff;}
+  .contrib-row{display:grid;grid-template-columns:140px 1fr 90px;gap:8px;align-items:center;margin:6px 0;}
+  .contrib-label{font-size:10px;color:var(--nx-text);font-weight:600;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .contrib-track{position:relative;height:16px;background:rgba(157,196,236,.06);border-radius:4px;}
+  .contrib-seg{position:absolute;top:0;height:100%;border-radius:4px;}
+  .contrib-seg.pos{background:var(--good);}
+  .contrib-seg.neg{background:var(--bad);}
+  .contrib-val{font-size:10px;font-weight:700;text-align:right;}
+
   .bar-row{display:grid;grid-template-columns:110px 1fr 74px;gap:8px;align-items:center;margin:7px 0;}
   .bar-label{font-size:9.5px;color:var(--nx-text);font-weight:600;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .bar-track{height:13px;background:rgba(157,196,236,.10);border-radius:999px;overflow:hidden;}
@@ -290,30 +305,68 @@
            order (Executive Overview done; these are next, in order). Each
            names the business question it will answer so the nav isn't a
            dead end -- just not wired to data yet. -->
-      <div class="page" data-page="client">
-        <div class="panel"><div class="coming-soon">
-          <div class="cs-icon">◷</div><h3>Client Performance</h3>
-          <p>Which clients are growing and which are under pressure? Trend by client, ranking, growth ranking, category mix within client.</p>
-        </div></div>
+      <div class="page" data-page="trend">
+        <div class="panel">
+          <h2>Monthly Trend — This Year vs Last <span class="tag" id="trendPageTag"></span></h2>
+          <div class="key-points" id="trendKeyPoints"></div>
+          <div class="grid-2b">
+            <div>
+              <div class="chart-label">Volume by month (units)</div>
+              <div class="chart-wrap"><canvas id="trendVolChart"></canvas></div>
+            </div>
+            <div>
+              <div class="chart-label">Value by month (Rand)</div>
+              <div class="chart-wrap"><canvas id="trendValChart"></canvas></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="page" data-page="category">
-        <div class="panel"><div class="coming-soon">
-          <div class="cs-icon">◷</div><h3>Category Performance</h3>
-          <p>Which categories are driving the business? Growth waterfall, category trend, contribution %, performance matrix. Needs a category cleanup mapper first (274 raw category values seen in the source data).</p>
-        </div></div>
+
+      <div class="page" data-page="region">
+        <div class="panel">
+          <h2>Regions <span class="tag">year to date vs last year</span></h2>
+          <div id="regionContent"></div>
+        </div>
       </div>
       <div class="page" data-page="brand">
-        <div class="panel"><div class="coming-soon">
-          <div class="cs-icon">◷</div><h3>Brand Performance</h3>
-          <p>Which brands are carrying the portfolio? Brand trend, ranking, contribution tree, growth breakdown.</p>
-        </div></div>
+        <div class="panel">
+          <h2>Brands <span class="tag">year to date vs last year</span></h2>
+          <div id="brandContent"></div>
+        </div>
       </div>
-      <div class="page" data-page="sku">
-        <div class="panel"><div class="coming-soon">
-          <div class="cs-icon">◷</div><h3>SKU Deep Dive</h3>
-          <p>Which SKUs should we protect, support or remove? Top/bottom SKUs, Pareto analysis, SKU trend. Built from sales_fact's product/sku column plus the Product List mapper for clean article descriptions.</p>
-        </div></div>
+      <div class="page" data-page="channel">
+        <div class="panel">
+          <h2>Channels <span class="tag">year to date vs last year</span></h2>
+          <div id="channelContent"></div>
+        </div>
       </div>
+
+      <div class="page" data-page="pricemix">
+        <div class="panel">
+          <h2>Price &amp; Mix <span class="tag">average selling price = value ÷ units</span></h2>
+          <div class="key-points" id="priceMixKeyPoints"></div>
+          <div class="grid-2">
+            <div class="panel" style="margin:0;">
+              <h2 style="border:none;padding-bottom:0;margin-bottom:8px;">Average selling price by month, this year vs last</h2>
+              <div class="chart-wrap"><canvas id="priceMixChart"></canvas></div>
+            </div>
+            <div class="panel" style="margin:0;">
+              <h2 style="border:none;padding-bottom:0;margin-bottom:8px;">Price Summary</h2>
+              <table class="mini" id="priceSummaryTable"><tbody></tbody></table>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Average price by retailer <span class="tag">latest month vs prior month</span></h2>
+          <div class="table-scroll">
+            <table class="mini" id="priceByRetailerTable">
+              <thead><tr><th>Retailer</th><th>Latest Avg Price</th><th>vs Prior Month</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <div class="page" data-page="store">
         <div class="panel">
           <h2>Store Performance <span class="tag">top 500 stores by 12M value</span></h2>
@@ -333,22 +386,23 @@
           <div class="table-note">Tier is provisional (Growth_6M/ConsecutiveDeclineMonths-based) — pending the exact "Mid-Term Store Performance" formula from the Power BI report.</div>
         </div>
       </div>
-      <div class="page" data-page="opportunity">
+
+      <div class="page" data-page="sku">
         <div class="panel"><div class="coming-soon">
-          <div class="cs-icon">◷</div><h3>Opportunities &amp; Risks</h3>
-          <p>Where should sales teams focus? Whitespace (stores buying the category but not this brand/SKU), lost-store recovery, underperforming stores, declining stores.</p>
+          <div class="cs-icon">◷</div><h3>Products</h3>
+          <p>SKU-level ranking, Pareto analysis, distribution (ND%/wND%). Blocked pending the Product List mapper being wired in and a "total store universe" reference for distribution %.</p>
         </div></div>
       </div>
-      <div class="page" data-page="trends">
+      <div class="page" data-page="newproducts">
         <div class="panel"><div class="coming-soon">
-          <div class="cs-icon">◷</div><h3>Trends &amp; Insights</h3>
-          <p>What's changing and what should management know? Rolling 3/6/12-month trend, seasonality, growth momentum, expanded automated insight engine.</p>
+          <div class="cs-icon">◷</div><h3>New Products</h3>
+          <p>Launch tracking: first-sold month, units/value/stores/ND% since launch, still-building vs plateaued signal. Same blockers as Products.</p>
         </div></div>
       </div>
-      <div class="page" data-page="explorer">
+      <div class="page" data-page="rangegaps">
         <div class="panel"><div class="coming-soon">
-          <div class="cs-icon">◷</div><h3>Data Explorer</h3>
-          <p>Drill-down tables with export, for ad-hoc questions the fixed pages don't answer directly.</p>
+          <div class="cs-icon">◷</div><h3>Range Gaps</h3>
+          <p>Store availability across the channel ecosystem, with estimated upside. Lowest priority — even the ARIA reference tool shows this as "in dev."</p>
         </div></div>
       </div>
 
@@ -367,14 +421,15 @@
 // =========================================================================
 const PAGES = [
   { key: 'overview', label: 'Executive Overview' },
-  { key: 'client', label: 'Client Performance' },
-  { key: 'category', label: 'Category Performance' },
-  { key: 'brand', label: 'Brand Performance' },
-  { key: 'sku', label: 'SKU Deep Dive' },
-  { key: 'store', label: 'Store Performance' },
-  { key: 'opportunity', label: 'Opportunities & Risks' },
-  { key: 'trends', label: 'Trends & Insights' },
-  { key: 'explorer', label: 'Data Explorer' },
+  { key: 'trend', label: 'Trend' },
+  { key: 'region', label: 'Regions' },
+  { key: 'brand', label: 'Brands' },
+  { key: 'channel', label: 'Channels' },
+  { key: 'pricemix', label: 'Price & Mix' },
+  { key: 'store', label: 'Stores' },
+  { key: 'sku', label: 'Products' },
+  { key: 'newproducts', label: 'New Products' },
+  { key: 'rangegaps', label: 'Range Gaps' },
 ];
 
 function renderNav() {
@@ -396,10 +451,15 @@ function goToPage(key) {
   document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.getAttribute('data-page') === key));
   const page = PAGES.find(p => p.key === key);
   document.getElementById('pageTitle').textContent = page ? page.label : '';
-  // Lazy-load: the store table is a heavier query (full grouped scan of
-  // sales_fact) than anything on Executive Overview, so it only runs the
-  // first time this page is actually opened, not on every boot().
+  // Lazy-load: each of these is a heavier query than anything on Executive
+  // Overview, so they only run the first time their page is actually
+  // opened, not on every boot().
   if (key === 'store' && !storePerfLoaded) loadStorePerformance();
+  if (key === 'trend' && !trendPageLoaded) loadTrendPage();
+  if (key === 'region' && !dimensionLoaded.region) loadDimensionPage('region');
+  if (key === 'brand' && !dimensionLoaded.brand) loadDimensionPage('brand');
+  if (key === 'channel' && !dimensionLoaded.banner) loadDimensionPage('banner');
+  if (key === 'pricemix' && !priceMixLoaded) loadPriceMixPage();
 }
 renderNav();
 
@@ -593,6 +653,13 @@ async function mockFetchJson(relativePath) {
   if (path === 'banner_bucket_summary') return loadMockFile('banner_bucket_summary');
   if (path === 'store_performance') return loadMockFile('store_performance');
 
+  if (path === 'dimension_breakdown') {
+    const dim = params.get('dimension') || 'region';
+    return loadMockFile(dim === 'banner' ? 'dimension_banner' : `dimension_${dim}`);
+  }
+  if (path === 'monthly_trend') return loadMockFile('monthly_trend');
+  if (path === 'price_mix') return loadMockFile('price_mix');
+
   throw new Error(`No mock handler for route: ${path}`);
 }
 
@@ -709,13 +776,25 @@ async function boot() {
   await loadScope();
 }
 
+function isActivePage(key) {
+  return document.querySelector(`.page[data-page="${key}"]`)?.classList.contains('active');
+}
+
 async function loadScope() {
-  // Store Performance is lazy-loaded and not re-fetched by loadScope
-  // itself (it's a heavier query) -- invalidate the cache on any filter
-  // change so the next visit to that page reflects the new scope, and
+  // These pages are all lazy-loaded and not re-fetched by loadScope itself
+  // (heavier queries than Executive Overview) -- invalidate their caches
+  // on any filter change so the next visit reflects the new scope, and
   // refresh immediately if it's the page currently on screen.
   storePerfLoaded = false;
-  if (document.querySelector('.page[data-page="store"]')?.classList.contains('active')) loadStorePerformance();
+  if (isActivePage('store')) loadStorePerformance();
+  trendPageLoaded = false;
+  if (isActivePage('trend')) loadTrendPage();
+  dimensionLoaded.region = dimensionLoaded.brand = dimensionLoaded.banner = false;
+  if (isActivePage('region')) loadDimensionPage('region');
+  if (isActivePage('brand')) loadDimensionPage('brand');
+  if (isActivePage('channel')) loadDimensionPage('banner');
+  priceMixLoaded = false;
+  if (isActivePage('pricemix')) loadPriceMixPage();
 
   // Mock-mode fidelity gaps (see mockFetchJson's comment): category
   // filtering ignores a simultaneous client filter, and brand filtering
@@ -1043,6 +1122,209 @@ function renderInsights({ declining, growing, atRisk, brands, category, summary 
   const el = document.getElementById('insightCards');
   el.innerHTML = cards.map(c => `<div class="insight-card ${c.kind}"><div class="badge">${c.icon}</div><div class="txt">${c.html}</div></div>`).join('');
   if (!cards.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">Not enough data for insights at this scope.</div>';
+}
+
+// =========================================================================
+// Trend / Regions / Brands / Channels / Price & Mix — lazy-loaded state
+// =========================================================================
+let trendPageLoaded = false;
+let trendVolChart = null, trendValChart = null;
+let dimensionLoaded = { region: false, brand: false, banner: false };
+let dimensionMetric = { region: 'value', brand: 'value', banner: 'value' };
+let priceMixLoaded = false;
+let priceMixChart = null;
+
+async function loadTrendPage() {
+  trendPageLoaded = true;
+  const rows = await apiFetchJson('monthly_trend' + qs());
+  renderTrendPage(rows);
+}
+
+function renderTrendPage(rows) {
+  document.getElementById('trendPageTag').textContent = currentClient || 'all clients';
+  const byYearMonth = {};
+  rows.forEach(r => {
+    const d = new Date(r.month);
+    const y = d.getFullYear(), m = d.getMonth();
+    byYearMonth[y] = byYearMonth[y] || {};
+    byYearMonth[y][m] = { value: Number(r.sales_value || 0), units: Number(r.sales_units || 0) };
+  });
+  const years = Object.keys(byYearMonth).map(Number).sort((a, b) => b - a);
+  const curYear = years[0], lastYear = curYear - 1;
+  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthsWithData = Object.keys(byYearMonth[curYear] || {}).map(Number).sort((a, b) => a - b);
+
+  const mk = (metric) => ({
+    labels: monthsWithData.map(m => monthLabels[m]),
+    datasets: [
+      { label: String(lastYear), data: monthsWithData.map(m => (byYearMonth[lastYear]?.[m]?.[metric]) ?? null), backgroundColor: '#8696a8' },
+      { label: String(curYear), data: monthsWithData.map(m => (byYearMonth[curYear]?.[m]?.[metric]) ?? null), backgroundColor: '#eb7a2b' },
+    ],
+  });
+  const opts = (fmt) => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: true, position: 'bottom', labels: { color: '#c9d7e6', boxWidth: 10, font: { size: 9 } } } },
+    scales: { y: { ticks: { color: '#78a3cf', callback: fmt }, grid: { color: 'rgba(157,196,236,.10)' } }, x: { ticks: { color: '#78a3cf' }, grid: { display: false } } },
+  });
+
+  if (trendVolChart) trendVolChart.destroy();
+  trendVolChart = new Chart(document.getElementById('trendVolChart').getContext('2d'), { type: 'bar', data: mk('units'), options: opts(fmtN) });
+  if (trendValChart) trendValChart.destroy();
+  trendValChart = new Chart(document.getElementById('trendValChart').getContext('2d'), { type: 'bar', data: mk('value'), options: opts(fmtR) });
+
+  // Key points, computed the same way as the rest of the dashboard's
+  // insight cards -- real numbers dropped into fixed sentence templates,
+  // not a live AI call (see conversation 2026-08-13: this reads the same
+  // as the reference tool's "auto-generated" summaries, but is actually
+  // deterministic and can't misstate a number since nothing is generated,
+  // only substituted).
+  const curTotalVal = monthsWithData.reduce((s, m) => s + (byYearMonth[curYear]?.[m]?.value || 0), 0);
+  const lyTotalVal = monthsWithData.reduce((s, m) => s + (byYearMonth[lastYear]?.[m]?.value || 0), 0);
+  const curTotalUnits = monthsWithData.reduce((s, m) => s + (byYearMonth[curYear]?.[m]?.units || 0), 0);
+  const lyTotalUnits = monthsWithData.reduce((s, m) => s + (byYearMonth[lastYear]?.[m]?.units || 0), 0);
+  const latestM = monthsWithData[monthsWithData.length - 1];
+  const latest = byYearMonth[curYear]?.[latestM];
+  const points = [
+    `Volume ${fmtPctSigned(_pc(curTotalUnits, lyTotalUnits))} and value ${fmtPctSigned(_pc(curTotalVal, lyTotalVal))} year-to-date vs last year.`,
+    latest ? `${monthLabels[latestM]} sold ${fmtN(latest.units)} units / ${fmtR(latest.value)}.` : '',
+    `Average price is ${fmtR(curTotalUnits ? curTotalVal / curTotalUnits : 0)}/unit.`,
+  ].filter(Boolean);
+  document.getElementById('trendKeyPoints').innerHTML = `<ul>${points.map(p => `<li>${p}</li>`).join('')}</ul>`;
+}
+
+function _pc(cur, prior) { return prior ? (cur - prior) / prior : null; }
+function fmtPctSigned(p) { return p == null ? '—' : (p >= 0 ? '+' : '') + (p * 100).toFixed(1) + '%'; }
+
+// Shared by Regions/Brands/Channels: a contribution list (each group's YTD
+// value/unit delta vs last year, as a bar) and a this-year-vs-last ranking
+// table. Real waterfall/bridge geometry (like the reference tool's) needs
+// a chart type this dashboard doesn't have anywhere else -- this
+// horizontal contribution-bar treatment carries the same information
+// (what grew, what shrank, by how much) without introducing one.
+async function loadDimensionPage(dimension) {
+  dimensionLoaded[dimension] = true;
+  const data = await apiFetchJson(`dimension_breakdown?dimension=${dimension}` + qs().replace(/^\?/, '&'));
+  const key = dimension === 'banner' ? 'channel' : dimension;
+  renderDimensionPage(key, dimension, data.rows);
+}
+
+function renderDimensionPage(contentKey, dimension, rows) {
+  const metric = dimensionMetric[dimension];
+  const el = document.getElementById(`${contentKey}Content`);
+  const sorted = [...rows].sort((a, b) => (b[`delta_${metric === 'value' ? 'value' : 'units'}`] || 0) - (a[`delta_${metric === 'value' ? 'value' : 'units'}`] || 0));
+  const top = sorted.slice(0, 6);
+  const grown = rows.filter(r => (r[`delta_${metric}`] || 0) > 0).length;
+  const declined = rows.length - grown;
+  const biggest = sorted[0];
+  const fmt = metric === 'value' ? fmtR : fmtN;
+
+  const maxAbs = Math.max(1, ...top.map(r => Math.abs(r[`delta_${metric}`] || 0)));
+  const contribRows = top.map(r => {
+    const d = r[`delta_${metric}`] || 0;
+    const pct = (Math.abs(d) / maxAbs * 100).toFixed(1);
+    const cls = d >= 0 ? 'pos' : 'neg';
+    return `<div class="contrib-row">
+      <div class="contrib-label">${titleCase(r.dim) || r.dim}</div>
+      <div class="contrib-track"><div class="contrib-seg ${cls}" style="width:${pct}%;left:0"></div></div>
+      <div class="contrib-val" style="color:${d >= 0 ? 'var(--good)' : 'var(--bad)'}">${d >= 0 ? '+' : ''}${fmt(d)}</div>
+    </div>`;
+  }).join('');
+
+  const rankRows = [...rows].sort((a, b) => (b[`cur_${metric === 'value' ? 'value' : 'units'}`] || 0) - (a[`cur_${metric === 'value' ? 'value' : 'units'}`] || 0)).slice(0, 10);
+  const rankHtml = rankRows.map(r => {
+    const cur = r[metric === 'value' ? 'cur_value' : 'cur_units'] || 0;
+    const ly = r[metric === 'value' ? 'ly_value' : 'ly_units'] || 0;
+    const pct = r[`${metric === 'value' ? 'value' : 'units'}_vs_pct`];
+    const max = Math.max(1, ...rankRows.map(x => x[metric === 'value' ? 'cur_value' : 'cur_units'] || 0));
+    return `<div class="bar-row" style="grid-template-columns:130px 1fr 90px;">
+      <div class="bar-label">${titleCase(r.dim) || r.dim}</div>
+      <div class="bar-track"><div class="bar-seg" style="width:${(cur / max * 100).toFixed(1)}%"></div></div>
+      <div class="bar-val">${fmt(cur)} ${pct == null ? '' : `<span class="delta ${pct >= 0 ? 'up' : 'down'}">${pct >= 0 ? '▲' : '▼'}${Math.abs(pct * 100).toFixed(0)}%</span>`}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="metric-toggle">
+      <button type="button" data-metric="value" class="${metric === 'value' ? 'active' : ''}">Value</button>
+      <button type="button" data-metric="units" class="${metric === 'units' ? 'active' : ''}">Volume</button>
+    </div>
+    <div class="key-points"><ul>
+      <li><b>${titleCase(biggest?.dim) || '—'}</b> is the biggest ${metric === 'value' ? 'value' : 'volume'} mover, ${biggest && biggest[`delta_${metric}`] >= 0 ? 'gaining' : 'losing'} ${biggest ? fmt(Math.abs(biggest[`delta_${metric}`])) : '—'} YTD vs last year.</li>
+      <li>${grown} of ${rows.length} grew, ${declined} declined.</li>
+    </ul></div>
+    <div class="grid-2b">
+      <div><div class="chart-label">What moved ${metric === 'value' ? 'value' : 'volume'} — YTD vs last year</div>${contribRows || '<div style="font-size:11px;color:var(--nx-muted);">No data.</div>'}</div>
+      <div><div class="chart-label">Top ${dimension === 'region' ? 'regions' : dimension === 'brand' ? 'brands' : 'retailers'} — this year vs last</div>${rankHtml || '<div style="font-size:11px;color:var(--nx-muted);">No data.</div>'}</div>
+    </div>`;
+
+  el.querySelectorAll('[data-metric]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      dimensionMetric[dimension] = btn.getAttribute('data-metric');
+      renderDimensionPage(contentKey, dimension, rows);
+    });
+  });
+}
+
+async function loadPriceMixPage() {
+  priceMixLoaded = true;
+  const data = await apiFetchJson('price_mix' + qs());
+  renderPriceMixPage(data);
+}
+
+function renderPriceMixPage(data) {
+  const monthly = data.monthly || [];
+  const prices = monthly.map(m => m.avg_price).filter(p => p != null);
+  const ytdAvg = monthly.reduce((s, m) => s + (m.sales_value || 0), 0) / (monthly.reduce((s, m) => s + (m.sales_units || 0), 0) || 1);
+  const minM = monthly.reduce((min, m) => (m.avg_price != null && (!min || m.avg_price < min.avg_price)) ? m : min, null);
+  const maxM = monthly.reduce((max, m) => (m.avg_price != null && (!max || m.avg_price > max.avg_price)) ? m : max, null);
+  const first = monthly.find(m => m.avg_price != null);
+  const last = [...monthly].reverse().find(m => m.avg_price != null);
+  const changeWithinYear = first && last ? _pc(last.avg_price, first.avg_price) : null;
+
+  document.getElementById('priceMixKeyPoints').innerHTML = `<ul>
+    <li>Average selling price is ${fmtR(ytdAvg)}/unit.</li>
+    <li>Monthly price ranged ${minM ? fmtR(minM.avg_price) : '—'} (${minM ? fmtMonth(minM.month) : '—'}) to ${maxM ? fmtR(maxM.avg_price) : '—'} (${maxM ? fmtMonth(maxM.month) : '—'}).</li>
+    <li>Change from first to latest month: ${fmtPctSigned(changeWithinYear)}.</li>
+  </ul>`;
+
+  const ctx = document.getElementById('priceMixChart').getContext('2d');
+  if (priceMixChart) priceMixChart.destroy();
+  priceMixChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: monthly.map(m => fmtMonth(m.month)),
+      datasets: [{ label: 'Avg price/unit', data: monthly.map(m => m.avg_price), borderColor: '#eb7a2b', backgroundColor: 'rgba(235,122,43,.10)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.2 }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { ticks: { color: '#78a3cf', callback: fmtR }, grid: { color: 'rgba(157,196,236,.10)' } }, x: { ticks: { color: '#78a3cf' }, grid: { display: false } } },
+    },
+  });
+
+  const summaryRows = [
+    ['Average (YTD)', fmtR(ytdAvg)],
+    ['Lowest month', minM ? `${fmtMonth(minM.month)} · ${fmtR(minM.avg_price)}` : '—'],
+    ['Highest month', maxM ? `${fmtMonth(maxM.month)} · ${fmtR(maxM.avg_price)}` : '—'],
+    ['Change (first→latest)', fmtPctSigned(changeWithinYear)],
+  ];
+  document.querySelector('#priceSummaryTable tbody').innerHTML = summaryRows.map(([l, v]) =>
+    `<tr><td>${l}</td><td style="text-align:right;font-weight:700;">${v}</td></tr>`).join('');
+
+  const byRetailer = {};
+  (data.by_retailer || []).forEach(r => {
+    byRetailer[r.banner] = byRetailer[r.banner] || [];
+    byRetailer[r.banner].push(r);
+  });
+  const rows = Object.entries(byRetailer).map(([banner, recs]) => {
+    const sorted = recs.slice().sort((a, b) => new Date(a.month) - new Date(b.month));
+    const latest = sorted[sorted.length - 1], prev = sorted[sorted.length - 2];
+    return { banner, latest, delta: latest && prev ? _pc(latest.avg_price, prev.avg_price) : null };
+  }).filter(r => r.latest?.avg_price != null).sort((a, b) => (b.latest.sales_value || 0) - (a.latest.sales_value || 0)).slice(0, 30);
+  document.querySelector('#priceByRetailerTable tbody').innerHTML = rows.map(r => `
+    <tr><td>${titleCase(r.banner) || r.banner}</td><td>${fmtR(r.latest.avg_price)}</td>
+      <td>${r.delta == null ? '—' : `<span class="delta ${r.delta >= 0 ? 'up' : 'down'}">${r.delta >= 0 ? '▲' : '▼'} ${Math.abs(r.delta * 100).toFixed(1)}%</span>`}</td></tr>
+  `).join('') || '<tr><td colspan="3" style="color:var(--nx-muted);">No data.</td></tr>';
 }
 
 // =========================================================================
