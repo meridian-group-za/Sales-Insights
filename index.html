@@ -294,7 +294,7 @@
           <div class="panel">
             <h2>Top Mover Brands <span class="tag">latest month</span></h2>
             <table class="mini" id="brandMoversTable">
-              <thead><tr><th>Brand</th><th>Signal</th><th>Share vs Peer</th></tr></thead>
+              <thead><tr><th>Brand</th><th>Store</th><th>Signal</th><th>Share vs Peer</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -370,14 +370,18 @@
       <div class="page" data-page="store">
         <div class="panel">
           <h2>Store Performance <span class="tag">top 500 stores by 12M value</span></h2>
+          <div class="metric-toggle" id="storeMetricToggle">
+            <button type="button" data-metric="value" class="active">Value</button>
+            <button type="button" data-metric="units">Volume</button>
+          </div>
           <div class="tier-tabs" id="tierTabs"></div>
           <div class="table-scroll">
             <table class="mini" id="storePerfTable">
-              <thead><tr>
+              <thead><tr id="storePerfHead">
                 <th>Store</th><th>Banner</th><th>Client</th><th>Top Brand</th>
-                <th>Sales Value 12M</th><th>vs PP</th>
-                <th>Sales Value 6M</th><th>vs PP</th>
-                <th>Sales Units 12M</th><th>vs PP</th>
+                <th id="th12m">Sales Value 12M</th><th>vs PP</th>
+                <th id="th6m">Sales Value 6M</th><th>vs PP</th>
+                <th>Trend (12M)</th>
                 <th>Tier</th>
               </tr></thead>
               <tbody></tbody>
@@ -696,6 +700,20 @@ function titleCase(s) {
 // can never surface as a top mover or an insight card's headline example.
 const hasName = (key) => (r) => cleanName(r[key]) != null;
 
+// Fixed-order categorical palette (validated for dark surfaces, CVD-safe
+// adjacent pairs) -- assigned by label via colorFor() so a given
+// category/bucket/region always gets the same color across renders and
+// pages, never re-cycled based on rank or filter state.
+const CATEGORICAL_PALETTE = ['#eb7a2b', '#3e8fd8', '#5fb684', '#c77dd6', '#e0b34a', '#4fc3c9', '#e0714f', '#8fa8c9'];
+const _colorAssignments = new Map();
+function colorFor(label) {
+  const key = String(label ?? '');
+  if (!_colorAssignments.has(key)) {
+    _colorAssignments.set(key, CATEGORICAL_PALETTE[_colorAssignments.size % CATEGORICAL_PALETTE.length]);
+  }
+  return _colorAssignments.get(key);
+}
+
 // =========================================================================
 // Data loading
 // =========================================================================
@@ -898,7 +916,7 @@ function renderProvince(rows) {
     const row = document.createElement('div');
     row.className = 'bar-row';
     row.innerHTML = `<div class="bar-label">${r.province || 'Unknown'}</div>
-      <div class="bar-track"><div class="bar-seg" style="width:${pct}%"></div></div>
+      <div class="bar-track"><div class="bar-seg" style="width:${pct}%;background:${colorFor(r.province)}"></div></div>
       <div class="bar-val">${fmtR(r.sales_value)}</div>`;
     el.appendChild(row);
   });
@@ -916,14 +934,18 @@ function renderRollingKpis(rolling) {
     const up = pct >= 0;
     return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(pct * 100).toFixed(0)}%</span>`;
   };
+  // Units and Value each get their own row (grid is 4 columns, 8 cards --
+  // grouping by metric instead of interleaving MTD/P3M/P6M/P12M per metric
+  // means row 1 = all Units, row 2 = all Value, easier to scan than
+  // alternating every other card).
   const cards = [
     { label: 'Sales Units MTD', value: fmtN(rolling.mtd?.sales_units), delta: rolling.mtd?.units_vs_pct, cls: 'orange', vs: 'vs Last Month' },
-    { label: 'Sales Value MTD', value: fmtR(rolling.mtd?.sales_value), delta: rolling.mtd?.value_vs_pct, cls: 'blue', vs: 'vs Last Month' },
     { label: 'Sales Units P3M', value: fmtN(rolling.p3m?.sales_units), delta: rolling.p3m?.units_vs_pct, cls: 'orange', vs: 'vs PP' },
-    { label: 'Sales Value P3M', value: fmtR(rolling.p3m?.sales_value), delta: rolling.p3m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
     { label: 'Sales Units P6M', value: fmtN(rolling.p6m?.sales_units), delta: rolling.p6m?.units_vs_pct, cls: 'orange', vs: 'vs PP' },
-    { label: 'Sales Value P6M', value: fmtR(rolling.p6m?.sales_value), delta: rolling.p6m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
     { label: 'Sales Units P12M', value: fmtN(rolling.p12m?.sales_units), delta: rolling.p12m?.units_vs_pct, cls: 'orange', vs: 'vs PP' },
+    { label: 'Sales Value MTD', value: fmtR(rolling.mtd?.sales_value), delta: rolling.mtd?.value_vs_pct, cls: 'blue', vs: 'vs Last Month' },
+    { label: 'Sales Value P3M', value: fmtR(rolling.p3m?.sales_value), delta: rolling.p3m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
+    { label: 'Sales Value P6M', value: fmtR(rolling.p6m?.sales_value), delta: rolling.p6m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
     { label: 'Sales Value P12M', value: fmtR(rolling.p12m?.sales_value), delta: rolling.p12m?.value_vs_pct, cls: 'blue', vs: 'vs PP' },
   ];
   document.getElementById('rollingKpiRow').innerHTML = cards.map(c => `
@@ -952,7 +974,7 @@ function renderBucketBars(elId, rows) {
     const row = document.createElement('div');
     row.className = 'segment-row';
     row.innerHTML = `<div class="segment-label">${r.bucket}</div>
-      <div class="bar-track"><div class="bar-seg" style="width:${pct}%"></div></div>
+      <div class="bar-track"><div class="bar-seg" style="width:${pct}%;background:${colorFor(r.bucket)}"></div></div>
       <div class="segment-share">${share}</div>
       <div class="bar-val">${deltaHtml}</div>`;
     el.appendChild(row);
@@ -981,16 +1003,33 @@ function renderStoreMovers(declining, growing, atRisk) {
 function renderBrandMovers(rows) {
   const tbody = document.querySelector('#brandMoversTable tbody');
   tbody.innerHTML = '';
-  rows.filter(hasName('cleaned brand')).slice(0, 10).forEach(r => {
+  // brand_monthly is keyed by (store, month, brand) -- the same brand can
+  // legitimately appear once per store it's carried in, and a niche brand
+  // sold in a handful of stores can land several of those rows in the top
+  // 30 with near-identical share numbers. Without a Store column that
+  // read as duplicate junk (Carin, 2026-08-13); showing Store makes clear
+  // they're different stores, and deduping to one row per brand here
+  // keeps this specific card (a quick top-10 scan) from being dominated
+  // by one repeated brand -- the full picture is still in Brand_Share_vs_Peer
+  // per store, just not all crammed into this one card.
+  const seen = new Set();
+  const deduped = rows.filter(hasName('cleaned brand')).filter(r => {
+    const b = r['cleaned brand'];
+    if (seen.has(b)) return false;
+    seen.add(b);
+    return true;
+  });
+  deduped.slice(0, 10).forEach(r => {
     const kind = r.insight_type === 'gaining_share' ? 'good' : 'bad';
     const label = r.insight_type === 'gaining_share' ? 'Gaining' : 'Losing';
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${titleCase(r['cleaned brand'])}</td>
+      <td>${titleCase(r['cleaned store name']) || '—'}</td>
       <td><span class="pill ${kind}">${label}</span></td>
       <td>${fmtPct(r['Brand_Share_vs_Peer'])}</td>`;
     tbody.appendChild(tr);
   });
-  if (!rows.length) tbody.innerHTML = '<tr><td colspan="3" style="color:var(--nx-muted);">No brand mover data for this scope.</td></tr>';
+  if (!deduped.length) tbody.innerHTML = '<tr><td colspan="4" style="color:var(--nx-muted);">No brand mover data for this scope.</td></tr>';
 }
 
 let categoryTrendChart = null;
@@ -1009,7 +1048,7 @@ function renderCategory(rows) {
     const row = document.createElement('div');
     row.className = 'bar-row';
     row.innerHTML = `<div class="bar-label">${r.category || 'Unknown'}</div>
-      <div class="bar-track"><div class="bar-seg" style="width:${pct}%"></div></div>
+      <div class="bar-track"><div class="bar-seg" style="width:${pct}%;background:${colorFor(r.category)}"></div></div>
       <div class="bar-val">${fmtR(r.sales_value)}</div>`;
     el.appendChild(row);
   });
@@ -1119,8 +1158,12 @@ function renderInsights({ declining, growing, atRisk, brands, category, summary 
   cards.push({ kind: 'good', icon: 'i', html:
     `Total sales value for ${fmtMonth(summary.month)}: <b>${fmtR(summary.sales_value)}</b> across <b>${fmtN(summary.store_count)}</b> trading stores.` });
 
+  // Same bordered key-points box used on Trend/Price & Mix/Regions/Brands/
+  // Channels, replacing the earlier per-card colored-icon treatment so
+  // every page's "auto-generated" callout reads as one consistent
+  // component (Carin, 2026-08-13).
   const el = document.getElementById('insightCards');
-  el.innerHTML = cards.map(c => `<div class="insight-card ${c.kind}"><div class="badge">${c.icon}</div><div class="txt">${c.html}</div></div>`).join('');
+  el.innerHTML = `<div class="key-points"><ul>${cards.map(c => `<li>${c.html}</li>`).join('')}</ul></div>`;
   if (!cards.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">Not enough data for insights at this scope.</div>';
 }
 
@@ -1238,7 +1281,7 @@ function renderDimensionPage(contentKey, dimension, rows) {
     const max = Math.max(1, ...rankRows.map(x => x[metric === 'value' ? 'cur_value' : 'cur_units'] || 0));
     return `<div class="bar-row" style="grid-template-columns:130px 1fr 90px;">
       <div class="bar-label">${titleCase(r.dim) || r.dim}</div>
-      <div class="bar-track"><div class="bar-seg" style="width:${(cur / max * 100).toFixed(1)}%"></div></div>
+      <div class="bar-track"><div class="bar-seg" style="width:${(cur / max * 100).toFixed(1)}%;background:${colorFor(r.dim)}"></div></div>
       <div class="bar-val">${fmt(cur)} ${pct == null ? '' : `<span class="delta ${pct >= 0 ? 'up' : 'down'}">${pct >= 0 ? '▲' : '▼'}${Math.abs(pct * 100).toFixed(0)}%</span>`}</div>
     </div>`;
   }).join('');
@@ -1333,6 +1376,23 @@ function renderPriceMixPage(data) {
 let storePerfLoaded = false;
 let storePerfRows = [];
 let storePerfTier = '';
+let storePerfMetric = 'value';
+
+// Tiny inline-SVG sparkline -- no chart library instantiation per table
+// row (500 of them), just a path string. Flat/empty series render as a
+// flat mid-line rather than an error.
+function sparkline(values, color) {
+  const vals = (values || []).map(Number).filter(v => !isNaN(v));
+  if (vals.length < 2) return '<span style="color:var(--nx-muted);font-size:10px;">—</span>';
+  const w = 70, h = 22, pad = 2;
+  const min = Math.min(...vals), max = Math.max(...vals), rng = (max - min) || 1;
+  const pts = vals.map((v, i) => [
+    pad + (i / (vals.length - 1)) * (w - pad * 2),
+    h - pad - ((v - min) / rng) * (h - pad * 2),
+  ]);
+  const d = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
 
 const TIER_STYLE = {
   'Strong Growth - Maintain': 'good',
@@ -1349,6 +1409,18 @@ async function loadStorePerformance() {
   storePerfRows = rows;
   renderTierTabs(rows);
   renderStorePerfTable(rows);
+
+  const toggle = document.getElementById('storeMetricToggle');
+  if (!toggle.dataset.wired) {
+    toggle.dataset.wired = '1';
+    toggle.querySelectorAll('[data-metric]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        storePerfMetric = btn.getAttribute('data-metric');
+        toggle.querySelectorAll('[data-metric]').forEach(b => b.classList.toggle('active', b === btn));
+        renderStorePerfTable(storePerfRows);
+      });
+    });
+  }
 }
 
 function renderTierTabs(rows) {
@@ -1374,18 +1446,27 @@ function renderStorePerfTable(rows) {
     if (d == null) return '<span style="color:var(--nx-muted);">—</span>';
     return `<span class="delta ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d * 100).toFixed(0)}%</span>`;
   };
-  tbody.innerHTML = filtered.map(r => `
-    <tr>
+  const isVal = storePerfMetric === 'value';
+  const fmt = isVal ? fmtR : fmtN;
+  document.getElementById('th12m').textContent = `Sales ${isVal ? 'Value' : 'Units'} 12M`;
+  document.getElementById('th6m').textContent = `Sales ${isVal ? 'Value' : 'Units'} 6M`;
+
+  tbody.innerHTML = filtered.map(r => {
+    const v12 = isVal ? r.val_12m : r.vol_12m, d12 = isVal ? r.val_12m_vs_pp : r.vol_12m_vs_pp;
+    const v6 = isVal ? r.val_6m : r.vol_6m, d6 = isVal ? r.val_6m_vs_pp : r.vol_6m_vs_pp;
+    const trend = isVal ? r.trend_value : r.trend_units;
+    return `<tr>
       <td>${titleCase(r.store_name) || '—'}</td>
       <td>${titleCase(r.banner) || '—'}</td>
       <td>${r.client || '—'}</td>
       <td>${titleCase(r.top_brand) || '—'}</td>
-      <td>${fmtR(r.val_12m)}</td><td>${deltaHtml(r.val_12m_vs_pp)}</td>
-      <td>${fmtR(r.val_6m)}</td><td>${deltaHtml(r.val_6m_vs_pp)}</td>
-      <td>${fmtN(r.vol_12m)}</td><td>${deltaHtml(r.vol_12m_vs_pp)}</td>
+      <td>${fmt(v12)}</td><td>${deltaHtml(d12)}</td>
+      <td>${fmt(v6)}</td><td>${deltaHtml(d6)}</td>
+      <td>${sparkline(trend, isVal ? '#eb7a2b' : '#3e8fd8')}</td>
       <td><span class="pill ${TIER_STYLE[r.tier] || 'grey'}">${r.tier}</span></td>
-    </tr>`).join('');
-  if (!filtered.length) tbody.innerHTML = '<tr><td colspan="11" style="color:var(--nx-muted);">No stores match this tier.</td></tr>';
+    </tr>`;
+  }).join('');
+  if (!filtered.length) tbody.innerHTML = '<tr><td colspan="10" style="color:var(--nx-muted);">No stores match this tier.</td></tr>';
 }
 </script>
 </body>
