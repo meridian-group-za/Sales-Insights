@@ -36,6 +36,8 @@ def main():
     dump('client_monthly', sq.get_client_monthly(con, None, {}))
     dump('province_monthly', sq.get_province_monthly(con, None, {}))
     dump('category_monthly', sq.get_category_monthly(con, None, {}))
+    dump('categories', sq.get_categories(con, None, {}))
+    dump('brands', sq.get_brands(con, None, {}))
     dump('insights_stores_declining', sq.get_insights_stores(con, None, {'type': 'declining'}))
     dump('insights_stores_growing', sq.get_insights_stores(con, None, {'type': 'growing'}))
     dump('insights_stores_at_risk', sq.get_insights_stores(con, None, {'type': 'at_risk'}))

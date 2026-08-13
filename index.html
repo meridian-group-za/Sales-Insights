@@ -61,16 +61,21 @@
 
   /* MAIN */
   .main{margin-left:230px;position:relative;z-index:1;}
-  .topbar{min-height:76px;padding:16px 28px;background:rgba(8,27,52,.60);border-bottom:1px solid rgba(157,196,236,.16);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:space-between;gap:20px;position:sticky;top:0;z-index:40;}
+  .topbar{padding:16px 28px 18px;background:rgba(8,27,52,.60);border-bottom:1px solid rgba(157,196,236,.16);backdrop-filter:blur(14px);display:flex;flex-direction:column;gap:14px;position:sticky;top:0;z-index:40;}
+  .topbar-top{display:flex;align-items:center;justify-content:space-between;gap:20px;}
   .eyebrow{color:var(--nx-orange);font-size:9.5px;font-weight:700;letter-spacing:.18em;margin-bottom:4px;text-transform:uppercase;}
   .page-title h1{margin:0;font-size:24px;font-weight:700;color:var(--nx-heading);line-height:1.15;}
   .topbar-controls{display:flex;align-items:center;gap:14px;flex-shrink:0;}
-  .topbar-controls select{height:36px;background:rgba(18,58,104,.55);border:1px solid rgba(157,196,236,.22);border-radius:9px;padding:0 12px;color:var(--nx-heading);font-size:12px;font-family:inherit;}
-  .topbar-controls select option{background:#0B223C;color:#DCE8F5;}
   .auth-status{font-size:10.5px;color:var(--nx-muted);white-space:nowrap;}
   .topbar-controls a{color:var(--nx-muted);font-size:11px;text-decoration:none;}
   .topbar-controls a:hover{color:#fff;}
   .meta-tag{font-size:9.5px;color:var(--nx-muted);white-space:nowrap;}
+
+  .filter-row{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;}
+  .filter-wrap{display:flex;flex-direction:column;gap:4px;min-width:150px;}
+  .filter-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--nx-muted);}
+  .filter-wrap select{height:36px;background:rgba(18,58,104,.55);border:1px solid rgba(157,196,236,.22);border-radius:9px;padding:0 12px;color:var(--nx-heading);font-size:12px;font-family:inherit;}
+  .filter-wrap select option{background:#0B223C;color:#DCE8F5;}
 
   .scroll{max-width:1420px;margin:0 auto;padding:22px 24px 48px;}
   .page{display:none;}
@@ -168,15 +173,37 @@
 
   <div class="main">
     <header class="topbar">
-      <div class="page-title">
-        <div class="eyebrow">Sales Insights</div>
-        <h1 id="pageTitle">Executive Overview</h1>
+      <div class="topbar-top">
+        <div class="page-title">
+          <div class="eyebrow">Sales Insights</div>
+          <h1 id="pageTitle">Executive Overview</h1>
+        </div>
+        <div class="topbar-controls">
+          <span class="meta-tag" id="metaTag"></span>
+          <span class="auth-status" id="authStatus"></span>
+          <a href="#" id="signOutBtn">Sign out</a>
+        </div>
       </div>
-      <div class="topbar-controls">
-        <select id="clientSelect"><option value="">All Clients</option></select>
-        <span class="meta-tag" id="metaTag"></span>
-        <span class="auth-status" id="authStatus"></span>
-        <a href="#" id="signOutBtn">Sign out</a>
+      <div class="filter-row">
+        <div class="filter-wrap">
+          <span class="filter-lbl">Client</span>
+          <select id="clientSelect"><option value="">All Clients</option></select>
+        </div>
+        <div class="filter-wrap">
+          <span class="filter-lbl">Month</span>
+          <select id="monthSelect"><option value="">Latest</option></select>
+        </div>
+        <div class="filter-wrap">
+          <span class="filter-lbl">Category</span>
+          <select id="categorySelect"><option value="">All Categories</option></select>
+        </div>
+        <div class="filter-wrap">
+          <span class="filter-lbl">Brand</span>
+          <select id="brandSelect"><option value="">All Brands</option></select>
+        </div>
+        <!-- Province isn't a filter here (yet) -- it's the dimension the
+             "Sales by Province" panel already breaks out by; there's no
+             second place on this page a province filter would narrow. -->
       </div>
     </header>
 
@@ -468,28 +495,60 @@ async function apiFetchJson(relativePath) {
 // live per-request. client_monthly is filtered client-side here since its
 // mock file carries every client's rows, same shape the real "all clients"
 // branch returns.
+// Mock fidelity note: the real API can filter summary/trend/province by
+// category or brand because it queries sales_fact (21M rows) live -- that's
+// too big to ship as a local mock file. Mock category filtering instead
+// reuses category_monthly (already dumped, all-clients-combined, month x
+// category totals): a category filter is honored, but it takes priority
+// over any simultaneous client filter for KPI/trend numbers in mock mode
+// specifically (client filtering still works fine on its own). Brand
+// filtering has no equivalent aggregate dumped at all, so it's a no-op in
+// mock mode -- both limitations are surfaced via the meta tag in
+// loadScope() rather than silently showing wrong numbers.
 async function mockFetchJson(relativePath) {
   const [path, qs] = relativePath.split('?');
   const params = new URLSearchParams(qs || '');
   const client = params.get('client');
+  const month = params.get('month');
+  const category = params.get('category');
 
   if (path === 'meta') return loadMockFile('meta');
 
+  if (path === 'categories') return loadMockFile('categories');
+  if (path === 'brands') return loadMockFile('brands');
+
   if (path === 'client_monthly') {
+    if (category) {
+      const rows = (await loadMockFile('category_monthly')).filter(r => r.category === category);
+      return rows.map(r => ({ month: r.month, sales_value: r.sales_value, sales_units: r.sales_units, store_count: null }));
+    }
     const rows = await loadMockFile('client_monthly');
     return client ? rows.filter(r => r.client === client) : rows;
   }
 
   if (path === 'summary') {
-    if (!client) return loadMockFile('summary');
-    const rows = (await loadMockFile('client_monthly')).filter(r => r.client === client);
-    const month = rows.reduce((max, r) => (!max || r.month > max) ? r.month : max, null);
-    const latest = rows.filter(r => r.month === month);
+    if (category) {
+      const rows = (await loadMockFile('category_monthly')).filter(r => r.category === category);
+      const m = month || rows.reduce((max, r) => (!max || r.month > max) ? r.month : max, null);
+      const latest = rows.filter(r => r.month === m);
+      return {
+        sales_value: latest.reduce((s, r) => s + Number(r.sales_value || 0), 0),
+        sales_units: latest.reduce((s, r) => s + Number(r.sales_units || 0), 0),
+        store_count: null,
+        month: m,
+      };
+    }
+    if (!client) {
+      if (!month) return loadMockFile('summary');
+    }
+    const rows = (await loadMockFile('client_monthly')).filter(r => !client || r.client === client);
+    const m = month || rows.reduce((max, r) => (!max || r.month > max) ? r.month : max, null);
+    const latest = rows.filter(r => r.month === m);
     return {
       sales_value: latest.reduce((s, r) => s + Number(r.sales_value || 0), 0),
       sales_units: latest.reduce((s, r) => s + Number(r.sales_units || 0), 0),
       store_count: latest.reduce((s, r) => s + Number(r.store_count || 0), 0),
-      month,
+      month: m,
     };
   }
 
@@ -545,6 +604,29 @@ const hasName = (key) => (r) => cleanName(r[key]) != null;
 // =========================================================================
 let trendChart = null;
 let currentClient = '';
+let currentMonth = '';
+let currentCategory = '';
+let currentBrand = '';
+
+// Category is capped to the top 60 by value in the dropdown -- category
+// text isn't run through a cleanup mapper yet (274 raw distinct values,
+// see the Category Performance page note), so the long tail is mostly
+// near-duplicate junk not worth scrolling past.
+const CATEGORY_OPTION_LIMIT = 60;
+
+function qs(overrides) {
+  const p = new URLSearchParams();
+  const v = {
+    client: currentClient, month: currentMonth, category: currentCategory, brand: currentBrand,
+    ...overrides,
+  };
+  if (v.client) p.set('client', v.client);
+  if (v.month) p.set('month', v.month);
+  if (v.category) p.set('category', v.category);
+  if (v.brand) p.set('brand', v.brand);
+  const s = p.toString();
+  return s ? '?' + s : '';
+}
 
 async function boot() {
   document.body.classList.remove('auth-pending');
@@ -556,52 +638,92 @@ async function boot() {
   document.getElementById('metaTag').textContent =
     `${fmtN(meta.row_count)} rows · ${meta.clients?.length || 0} clients · refreshed ${meta.generated_at ? new Date(meta.generated_at).toLocaleDateString('en-ZA') : '—'}`;
 
-  const sel = document.getElementById('clientSelect');
+  const clientSel = document.getElementById('clientSelect');
   (meta.clients || []).forEach(c => {
     const opt = document.createElement('option');
     opt.value = c; opt.textContent = c;
-    sel.appendChild(opt);
+    clientSel.appendChild(opt);
   });
-  sel.addEventListener('change', () => { currentClient = sel.value; loadScope(); });
+  clientSel.addEventListener('change', () => { currentClient = clientSel.value; loadScope(); });
+
+  // Month list comes from the unfiltered client_monthly rows (every
+  // client's every month) so it doesn't depend on the client filter.
+  const allMonths = await apiFetchJson('client_monthly');
+  const months = [...new Set(allMonths.map(r => r.month))].sort().reverse();
+  const monthSel = document.getElementById('monthSelect');
+  months.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = fmtMonth(m);
+    monthSel.appendChild(opt);
+  });
+  monthSel.addEventListener('change', () => { currentMonth = monthSel.value; loadScope(); });
+
+  const categories = await apiFetchJson('categories');
+  const catSel = document.getElementById('categorySelect');
+  categories.slice(0, CATEGORY_OPTION_LIMIT).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.category; opt.textContent = titleCase(c.category) || c.category;
+    catSel.appendChild(opt);
+  });
+  catSel.addEventListener('change', () => { currentCategory = catSel.value; loadScope(); });
+
+  const brands = await apiFetchJson('brands');
+  const brandSel = document.getElementById('brandSelect');
+  brands.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.brand; opt.textContent = titleCase(b.brand) || b.brand;
+    brandSel.appendChild(opt);
+  });
+  brandSel.addEventListener('change', () => { currentBrand = brandSel.value; loadScope(); });
 
   await loadScope();
 }
 
 async function loadScope() {
-  const clientParam = currentClient ? `?client=${encodeURIComponent(currentClient)}` : '';
+  // Mock-mode fidelity gaps (see mockFetchJson's comment): category
+  // filtering ignores a simultaneous client filter, and brand filtering
+  // doesn't affect summary/trend/province at all. Surface that plainly
+  // instead of quietly showing numbers that don't match the filter.
+  const mockCaveats = [];
+  if (MOCK_MODE && currentCategory && currentClient) mockCaveats.push('category filter overrides client in build mode');
+  if (MOCK_MODE && currentBrand) mockCaveats.push('brand filter has no effect on KPIs/trend in build mode');
+  document.getElementById('metaTag').dataset.base = document.getElementById('metaTag').dataset.base
+    || document.getElementById('metaTag').textContent;
+  document.getElementById('metaTag').textContent = document.getElementById('metaTag').dataset.base
+    + (mockCaveats.length ? ' · ' + mockCaveats.join(' · ') : '');
 
-  const summary = await apiFetchJson('summary' + clientParam);
+  const summary = await apiFetchJson('summary' + qs());
   document.getElementById('kpiValue').textContent = fmtR(summary.sales_value);
   document.getElementById('kpiUnits').textContent = fmtN(summary.sales_units);
-  document.getElementById('kpiStores').textContent = fmtN(summary.store_count);
+  document.getElementById('kpiStores').textContent = summary.store_count == null ? '—' : fmtN(summary.store_count);
   document.getElementById('kpiMonth').textContent = fmtMonth(summary.month);
   document.getElementById('kpiValueSub').textContent = currentClient || 'All clients';
   document.getElementById('kpiUnitsSub').textContent = currentClient || 'All clients';
   document.getElementById('kpiStoresSub').textContent = 'trading stores';
-  document.getElementById('kpiMonthSub').textContent = 'most recent data';
+  document.getElementById('kpiMonthSub').textContent = currentMonth ? 'selected month' : 'most recent data';
 
-  const trend = await apiFetchJson('client_monthly' + clientParam);
+  const trend = await apiFetchJson('client_monthly' + qs());
   renderTrend(trend);
 
-  const province = await apiFetchJson('province_monthly' + clientParam);
+  const province = await apiFetchJson('province_monthly' + qs());
   renderProvince(province);
 
-  const storeParams = currentClient ? `?client=${encodeURIComponent(currentClient)}` : '';
+  const storeQs = currentClient ? `?client=${encodeURIComponent(currentClient)}` : '';
   const [declining, growing, atRisk] = await Promise.all([
-    apiFetchJson(`insights/stores${storeParams}${storeParams ? '&' : '?'}type=declining`),
-    apiFetchJson(`insights/stores${storeParams}${storeParams ? '&' : '?'}type=growing`),
-    apiFetchJson(`insights/stores${storeParams}${storeParams ? '&' : '?'}type=at_risk`),
+    apiFetchJson(`insights/stores${storeQs}${storeQs ? '&' : '?'}type=declining`),
+    apiFetchJson(`insights/stores${storeQs}${storeQs ? '&' : '?'}type=growing`),
+    apiFetchJson(`insights/stores${storeQs}${storeQs ? '&' : '?'}type=at_risk`),
   ]);
   renderStoreMovers(declining, growing, atRisk);
 
-  const brands = await apiFetchJson('insights/brands' + clientParam);
-  renderBrandMovers(brands);
+  const brandMovers = await apiFetchJson('insights/brands' + storeQs);
+  renderBrandMovers(brandMovers);
 
-  const category = await apiFetchJson('category_monthly' + clientParam);
+  const category = await apiFetchJson('category_monthly' + qs({ category: '' }));
   renderCategory(category);
   renderCategoryTrend(category);
 
-  renderInsights({ declining, growing, atRisk, brands, category, summary });
+  renderInsights({ declining, growing, atRisk, brands: brandMovers, category, summary });
 }
 
 function renderTrend(rows) {
