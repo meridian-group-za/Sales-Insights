@@ -519,6 +519,27 @@ const fmtMonth = (v) => {
   return isNaN(d) ? String(v).slice(0, 10) : d.toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' });
 };
 
+// Store/brand names are stored lowercase in sales_fact (that's the store
+// mapper's matching key, not a display value) -- title-case for display
+// only, never touch the underlying data. cleanName() also catches rows
+// that failed store mapping: the pipeline's NaN->string conversion turns
+// an unmatched cleaned-store-name into the literal text "nan", which would
+// otherwise render as a real (fake) store called "Nan".
+function cleanName(s) {
+  if (s == null) return null;
+  const t = String(s).trim();
+  if (!t || t.toLowerCase() === 'nan') return null;
+  return t;
+}
+function titleCase(s) {
+  const t = cleanName(s);
+  if (!t) return null;
+  return t.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+// Drops rows whose store/brand key failed mapping, so a broken "nan" row
+// can never surface as a top mover or an insight card's headline example.
+const hasName = (key) => (r) => cleanName(r[key]) != null;
+
 // =========================================================================
 // Data loading
 // =========================================================================
@@ -647,13 +668,13 @@ function renderStoreMovers(declining, growing, atRisk) {
   const tbody = document.querySelector('#storeMoversTable tbody');
   tbody.innerHTML = '';
   const rows = [
-    ...growing.slice(0, 5).map(r => ({ r, kind: 'good', label: 'Growing' })),
-    ...declining.slice(0, 5).map(r => ({ r, kind: 'bad', label: 'Declining' })),
-    ...atRisk.slice(0, 5).map(r => ({ r, kind: 'warn', label: 'At risk' })),
+    ...growing.filter(hasName('cleaned store name')).slice(0, 5).map(r => ({ r, kind: 'good', label: 'Growing' })),
+    ...declining.filter(hasName('cleaned store name')).slice(0, 5).map(r => ({ r, kind: 'bad', label: 'Declining' })),
+    ...atRisk.filter(hasName('cleaned store name')).slice(0, 5).map(r => ({ r, kind: 'warn', label: 'At risk' })),
   ];
   rows.forEach(({ r, kind, label }) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${r['cleaned store name'] || '—'}</td>
+    tr.innerHTML = `<td>${titleCase(r['cleaned store name'])}</td>
       <td><span class="pill ${kind}">${label}</span></td>
       <td>${fmtPct(r['Growth_6M'])}</td>`;
     tbody.appendChild(tr);
@@ -664,11 +685,11 @@ function renderStoreMovers(declining, growing, atRisk) {
 function renderBrandMovers(rows) {
   const tbody = document.querySelector('#brandMoversTable tbody');
   tbody.innerHTML = '';
-  rows.slice(0, 10).forEach(r => {
+  rows.filter(hasName('cleaned brand')).slice(0, 10).forEach(r => {
     const kind = r.insight_type === 'gaining_share' ? 'good' : 'bad';
     const label = r.insight_type === 'gaining_share' ? 'Gaining' : 'Losing';
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${r['cleaned brand'] || '—'}</td>
+    tr.innerHTML = `<td>${titleCase(r['cleaned brand'])}</td>
       <td><span class="pill ${kind}">${label}</span></td>
       <td>${fmtPct(r['Brand_Share_vs_Peer'])}</td>`;
     tbody.appendChild(tr);
@@ -765,28 +786,28 @@ function renderCategoryTrend(rows) {
 function renderInsights({ declining, growing, atRisk, brands, category, summary }) {
   const cards = [];
 
-  const topGrowStore = [...growing].sort((a, b) => (b.Growth_vs_Peer || 0) - (a.Growth_vs_Peer || 0))[0];
+  const topGrowStore = growing.filter(hasName('cleaned store name')).sort((a, b) => (b.Growth_vs_Peer || 0) - (a.Growth_vs_Peer || 0))[0];
   if (topGrowStore) {
     cards.push({ kind: 'good', icon: '✓', html:
-      `<b>${topGrowStore['cleaned store name']}</b> is growing ${fmtPct(topGrowStore['Growth_6M'])} over 6 months, ${fmtR(topGrowStore['Growth_vs_Peer'])} ahead of its peer group.` });
+      `<b>${titleCase(topGrowStore['cleaned store name'])}</b> is growing ${fmtPct(topGrowStore['Growth_6M'])} over 6 months, ${fmtR(topGrowStore['Growth_vs_Peer'])} ahead of its peer group.` });
   }
 
-  const topRiskStore = [...atRisk].sort((a, b) => (b.ConsecutiveDeclineMonths || 0) - (a.ConsecutiveDeclineMonths || 0))[0];
+  const topRiskStore = atRisk.filter(hasName('cleaned store name')).sort((a, b) => (b.ConsecutiveDeclineMonths || 0) - (a.ConsecutiveDeclineMonths || 0))[0];
   if (topRiskStore) {
     cards.push({ kind: 'bad', icon: '!', html:
-      `<b>${topRiskStore['cleaned store name']}</b> has declined for <b>${topRiskStore['ConsecutiveDeclineMonths']} consecutive months</b> — a chronic trend, not a one-off dip.` });
+      `<b>${titleCase(topRiskStore['cleaned store name'])}</b> has declined for <b>${topRiskStore['ConsecutiveDeclineMonths']} consecutive months</b> — a chronic trend, not a one-off dip.` });
   }
 
-  const topGainBrand = brands.filter(b => b.insight_type === 'gaining_share').sort((a, b) => (b.Brand_Share_vs_Peer || 0) - (a.Brand_Share_vs_Peer || 0))[0];
+  const topGainBrand = brands.filter(b => b.insight_type === 'gaining_share').filter(hasName('cleaned brand')).filter(hasName('cleaned store name')).sort((a, b) => (b.Brand_Share_vs_Peer || 0) - (a.Brand_Share_vs_Peer || 0))[0];
   if (topGainBrand) {
     cards.push({ kind: 'good', icon: '↑', html:
-      `<b>${topGainBrand['cleaned brand']}</b> is gaining share of store sales, ${fmtPct(topGainBrand['Brand_Share_vs_Peer'])} above its peer average at ${topGainBrand['cleaned store name']}.` });
+      `<b>${titleCase(topGainBrand['cleaned brand'])}</b> is gaining share of store sales, ${fmtPct(topGainBrand['Brand_Share_vs_Peer'])} above its peer average at ${titleCase(topGainBrand['cleaned store name'])}.` });
   }
 
-  const topLoseBrand = brands.filter(b => b.insight_type === 'losing_share').sort((a, b) => (a.Brand_Share_vs_Peer || 0) - (b.Brand_Share_vs_Peer || 0))[0];
+  const topLoseBrand = brands.filter(b => b.insight_type === 'losing_share').filter(hasName('cleaned brand')).filter(hasName('cleaned store name')).sort((a, b) => (a.Brand_Share_vs_Peer || 0) - (b.Brand_Share_vs_Peer || 0))[0];
   if (topLoseBrand) {
     cards.push({ kind: 'warn', icon: '↓', html:
-      `<b>${topLoseBrand['cleaned brand']}</b> is losing share of store sales, ${fmtPct(topLoseBrand['Brand_Share_vs_Peer'])} below its peer average at ${topLoseBrand['cleaned store name']}.` });
+      `<b>${titleCase(topLoseBrand['cleaned brand'])}</b> is losing share of store sales, ${fmtPct(topLoseBrand['Brand_Share_vs_Peer'])} below its peer average at ${titleCase(topLoseBrand['cleaned store name'])}.` });
   }
 
   const latestMonth = category.reduce((max, r) => (!max || r.month > max) ? r.month : max, null);
