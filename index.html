@@ -61,23 +61,27 @@
 
   /* MAIN */
   .main{margin-left:230px;position:relative;z-index:1;}
-  .topbar{padding:16px 28px 18px;background:rgba(8,27,52,.60);border-bottom:1px solid rgba(157,196,236,.16);backdrop-filter:blur(14px);display:flex;flex-direction:column;gap:14px;position:sticky;top:0;z-index:40;}
+  .topbar{padding:16px 28px 20px;background:rgba(8,27,52,.60);border-bottom:1px solid rgba(157,196,236,.16);backdrop-filter:blur(14px);display:flex;flex-direction:column;gap:16px;position:sticky;top:0;z-index:40;}
   .topbar-top{display:flex;align-items:center;justify-content:space-between;gap:20px;}
   .eyebrow{color:var(--nx-orange);font-size:9.5px;font-weight:700;letter-spacing:.18em;margin-bottom:4px;text-transform:uppercase;}
   .page-title h1{margin:0;font-size:24px;font-weight:700;color:var(--nx-heading);line-height:1.15;}
-  .topbar-controls{display:flex;align-items:center;gap:14px;flex-shrink:0;}
-  .auth-status{font-size:10.5px;color:var(--nx-muted);white-space:nowrap;}
+  /* Compact top-right utility row: status badge, meta info, sign-out --
+     all inline and small, per Carin's header refinement request. */
+  .topbar-controls{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+  .status-badge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--nx-orange);background:rgba(235,122,43,.12);border:1px solid rgba(235,122,43,.3);border-radius:999px;padding:3px 9px;white-space:nowrap;}
   .topbar-controls a{color:var(--nx-muted);font-size:11px;text-decoration:none;}
   .topbar-controls a:hover{color:#fff;}
   .meta-tag{font-size:9.5px;color:var(--nx-muted);white-space:nowrap;}
 
-  .filter-row{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;}
-  .filter-wrap{display:flex;flex-direction:column;gap:4px;min-width:150px;}
+  .filter-row{display:flex;align-items:flex-end;gap:10px;}
+  .filter-wrap{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;}
   .filter-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--nx-muted);}
-  .filter-wrap select{height:36px;background:rgba(18,58,104,.55);border:1px solid rgba(157,196,236,.22);border-radius:9px;padding:0 12px;color:var(--nx-heading);font-size:12px;font-family:inherit;}
+  .filter-wrap select{width:100%;height:32px;background:rgba(18,58,104,.55);border:1px solid rgba(157,196,236,.22);border-radius:8px;padding:0 11px;color:var(--nx-heading);font-size:11.5px;font-family:inherit;}
   .filter-wrap select option{background:#0B223C;color:#DCE8F5;}
+  .reset-filters-btn{flex:0 0 auto;height:32px;padding:0 14px;border-radius:8px;background:rgba(157,196,236,.08);border:1px solid rgba(157,196,236,.2);color:var(--nx-text);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;align-self:flex-end;}
+  .reset-filters-btn:hover{background:rgba(157,196,236,.16);color:#fff;}
 
-  .scroll{max-width:1420px;margin:0 auto;padding:22px 24px 48px;}
+  .scroll{max-width:1420px;margin:0 auto;padding:30px 24px 48px;}
   .page{display:none;}
   .page.active{display:block;}
 
@@ -87,8 +91,12 @@
   .kpi-card{border-radius:12px;background:linear-gradient(145deg,rgba(24,71,119,.52),rgba(13,43,80,.52));border:1px solid rgba(157,196,236,.20);border-left:3px solid var(--nx-orange);box-shadow:0 14px 34px rgba(0,0,0,.15);padding:12px 14px;transition:transform .18s ease,border-color .18s ease;}
   .kpi-card:hover{transform:translateY(-2px);border-color:rgba(157,196,236,.32);}
   .kpi-card .kpi-label{font-size:8.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--nx-muted);font-weight:700;}
-  .kpi-card .kpi-value{font-size:19px;font-weight:700;color:var(--nx-heading);line-height:1.2;margin-top:5px;}
-  .kpi-card .kpi-sub{font-size:9px;color:#6f92b8;margin-top:5px;display:flex;align-items:center;gap:4px;}
+  .kpi-card .kpi-value{font-size:21px;font-weight:700;color:var(--nx-heading);line-height:1.2;margin-top:6px;}
+  .kpi-card .kpi-badge{margin-top:6px;}
+  .kpi-card .kpi-badge .delta{font-size:10.5px;padding:2px 7px;border-radius:5px;}
+  .kpi-card .kpi-badge .delta.up{background:rgba(95,182,132,.14);}
+  .kpi-card .kpi-badge .delta.down{background:rgba(224,113,79,.14);}
+  .kpi-card .kpi-context{font-size:9px;color:#6f92b8;margin-top:5px;}
   .kpi-card.orange{border-left:3px solid var(--nx-orange);}
   .kpi-card.blue{border-left:3px solid #3e8fd8;}
   .kpi-card.green{border-left:3px solid var(--good);}
@@ -96,10 +104,21 @@
   .delta.up{color:var(--good);}
   .delta.down{color:var(--bad);}
   .kpi-footline{font-size:10.5px;color:var(--nx-muted);margin-bottom:12px;}
+  .period-kpi-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .period-kpi-row{display:grid;grid-template-columns:56px 1fr 1fr;gap:8px;align-items:center;background:rgba(157,196,236,.04);border:1px solid rgba(157,196,236,.10);border-radius:10px;padding:8px 12px;}
+  .period-kpi-row .period-label{font-size:10px;font-weight:800;color:var(--nx-muted);text-transform:uppercase;}
+  .period-kpi-row .period-metric{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .period-kpi-row .period-metric .m-label{font-size:9.5px;color:var(--nx-muted);}
+  .period-kpi-row .period-metric .m-value{font-size:13px;font-weight:700;color:var(--nx-heading);}
+  .period-kpi-row .period-metric .m-delta{font-size:10px;}
 
   .segment-row{display:grid;grid-template-columns:130px 1fr 60px 74px;gap:8px;align-items:center;margin:7px 0;}
   .segment-label{font-size:9.5px;color:var(--nx-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .segment-share{font-size:9.5px;color:var(--nx-muted);font-weight:600;text-align:right;}
+  .segment-row-v2{margin:10px 0;padding-bottom:8px;border-bottom:1px solid rgba(157,196,236,.08);}
+  .segment-row-v2:last-child{border-bottom:none;}
+  .segment-row-v2-top{display:grid;grid-template-columns:130px 1fr 74px;gap:8px;align-items:center;}
+  .segment-row-v2-notation{font-size:9.5px;color:var(--nx-muted);margin-top:5px;padding-left:138px;}
 
   .panel{border-radius:14px;background:linear-gradient(145deg,rgba(24,71,119,.42),rgba(13,43,80,.42));border:1px solid rgba(157,196,236,.20);box-shadow:0 14px 34px rgba(0,0,0,.13);padding:16px 18px;margin-bottom:12px;}
   .panel h2{font-size:12.5px;margin:0 0 14px;color:var(--nx-heading);font-weight:700;display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid rgba(157,196,236,.12);}
@@ -213,8 +232,8 @@
           <h1 id="pageTitle">Executive Overview</h1>
         </div>
         <div class="topbar-controls">
+          <span class="status-badge" id="modeBadge"></span>
           <span class="meta-tag" id="metaTag"></span>
-          <span class="auth-status" id="authStatus"></span>
           <a href="#" id="signOutBtn">Sign out</a>
         </div>
       </div>
@@ -224,8 +243,8 @@
           <select id="clientSelect"><option value="">All Clients</option></select>
         </div>
         <div class="filter-wrap">
-          <span class="filter-lbl">Month</span>
-          <select id="monthSelect"><option value="">Latest</option></select>
+          <span class="filter-lbl">Reporting Period</span>
+          <select id="monthSelect"></select>
         </div>
         <div class="filter-wrap">
           <span class="filter-lbl">Category</span>
@@ -235,9 +254,15 @@
           <span class="filter-lbl">Brand</span>
           <select id="brandSelect"><option value="">All Brands</option></select>
         </div>
-        <!-- Province isn't a filter here (yet) -- it's the dimension the
-             "Sales by Province" panel already breaks out by; there's no
-             second place on this page a province filter would narrow. -->
+        <div class="filter-wrap">
+          <span class="filter-lbl">Region</span>
+          <select id="regionSelect"><option value="">All Regions</option></select>
+        </div>
+        <div class="filter-wrap">
+          <span class="filter-lbl">Product Description</span>
+          <select id="productSelect"><option value="">All Products</option></select>
+        </div>
+        <button type="button" class="reset-filters-btn" id="resetFiltersBtn">Reset filters</button>
       </div>
     </header>
 
@@ -246,6 +271,8 @@
       <div class="page active" data-page="overview">
         <div class="kpi-row" id="rollingKpiRow"></div>
         <div class="kpi-footline" id="kpiFootline"></div>
+
+        <div class="period-kpi-rows" id="periodKpiRows"></div>
 
         <div class="panel" id="insightsPanel">
           <h2>Executive Insights <span class="tag">auto-generated</span></h2>
@@ -268,46 +295,21 @@
 
         <div class="grid-2">
           <div class="panel">
-            <h2>Sales by Province <span class="tag">latest month</span></h2>
-            <div id="provinceBars"></div>
+            <h2>Category Mix <span class="tag">top 5, latest month</span></h2>
+            <table class="mini" id="categoryMixTable">
+              <thead><tr><th>Category</th><th>Sales</th><th>Mix</th><th>MoM</th></tr></thead>
+              <tbody></tbody>
+            </table>
           </div>
           <div class="panel">
-            <h2>Category Mix <span class="tag">latest month</span></h2>
-            <div id="categoryBars"></div>
+            <h2>Executive Drivers <span class="tag">latest month vs prior</span></h2>
+            <div id="execDrivers"></div>
           </div>
         </div>
 
         <div class="panel">
-          <h2>Category Trend <span class="tag" id="categoryTrendTag"></span></h2>
-          <div class="chart-wrap"><canvas id="categoryTrendChart"></canvas></div>
-        </div>
-
-        <div class="grid-2b">
-          <div class="panel">
-            <h2>Retail Segment <span class="tag">12M value share, vs prior 12M</span></h2>
-            <div id="segmentBars"></div>
-          </div>
-          <div class="panel">
-            <h2>Commercial Bucket <span class="tag">12M value share, vs prior 12M</span></h2>
-            <div id="bucketBars"></div>
-          </div>
-        </div>
-
-        <div class="grid-2b">
-          <div class="panel">
-            <h2>Top Mover Stores <span class="tag">latest month</span></h2>
-            <table class="mini" id="storeMoversTable">
-              <thead><tr><th>Store</th><th>Signal</th><th>6M Growth</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          <div class="panel">
-            <h2>Top Mover Brands <span class="tag">latest month</span></h2>
-            <table class="mini" id="brandMoversTable">
-              <thead><tr><th>Brand</th><th>Store</th><th>Signal</th><th>Share vs Peer</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
+          <h2>Retail Segment <span class="tag">12M value share, vs prior 12M</span></h2>
+          <div id="segmentBars"></div>
         </div>
       </div>
 
@@ -334,6 +336,10 @@
 
       <div class="page" data-page="region">
         <div class="panel">
+          <h2>Sales by Region <span class="tag">latest month</span></h2>
+          <div id="regionProvinceBars"></div>
+        </div>
+        <div class="panel">
           <h2>Regions <span class="tag">year to date vs last year</span></h2>
           <div id="regionContent"></div>
         </div>
@@ -348,6 +354,10 @@
         <div class="panel">
           <h2>Channels <span class="tag">year to date vs last year</span></h2>
           <div id="channelContent"></div>
+        </div>
+        <div class="panel">
+          <h2>Commercial Bucket <span class="tag">12M value share, vs prior 12M</span></h2>
+          <div id="bucketBars"></div>
         </div>
       </div>
 
@@ -674,6 +684,8 @@ async function mockFetchJson(relativePath) {
   if (path === 'monthly_trend') return loadMockFile('monthly_trend');
   if (path === 'price_mix') return loadMockFile('price_mix');
   if (path === 'kpi_cards') return loadMockFile('kpi_cards');
+  if (path === 'regions') return loadMockFile('regions');
+  if (path === 'products') return loadMockFile('products');
 
   throw new Error(`No mock handler for route: ${path}`);
 }
@@ -757,9 +769,9 @@ function qs(overrides) {
 
 async function boot() {
   document.body.classList.remove('auth-pending');
-  document.getElementById('authStatus').textContent = MOCK_MODE
-    ? 'Build mode — local data'
-    : (msalInstance.getAllAccounts()[0]?.username || '');
+  document.getElementById('modeBadge').textContent = MOCK_MODE
+    ? 'Local data'
+    : (msalInstance.getAllAccounts()[0]?.username || 'Live');
 
   const meta = await apiFetchJson('meta');
   document.getElementById('metaTag').textContent =
@@ -845,14 +857,11 @@ async function loadScope() {
     `${summary.store_count == null ? '—' : fmtN(summary.store_count)} stores trading in ${fmtMonth(kpi.latest_month)}` +
     (currentClient ? ` · ${currentClient}` : ' · All clients');
 
+  const rolling = await apiFetchJson('rolling_summary' + qs());
+  renderPeriodKpiRows(rolling);
+
   const trend = await apiFetchJson('client_monthly' + qs());
   renderTrend(trend);
-
-  const province = await apiFetchJson('province_monthly' + qs());
-  renderProvince(province);
-
-  const bucket = await apiFetchJson('bucket_summary' + qs());
-  renderBucketBars('bucketBars', bucket);
 
   const bannerBucket = await apiFetchJson('banner_bucket_summary' + qs());
   renderBucketBars('segmentBars', bannerBucket);
@@ -869,8 +878,8 @@ async function loadScope() {
   renderBrandMovers(brandMovers);
 
   const category = await apiFetchJson('category_monthly' + qs({ category: '' }));
-  renderCategory(category);
-  renderCategoryTrend(category);
+  renderCategoryMixTable(category);
+  renderExecDrivers(category);
 
   renderInsights({ declining, growing, atRisk, brands: brandMovers, category, summary });
 }
@@ -916,8 +925,15 @@ function renderTrend(rows) {
   });
 }
 
+// Moved off Executive Overview onto the Regions page (Carin, 2026-08-16) --
+// the exec view now shows Category Mix + Executive Drivers instead. Same
+// neutral-color-plus-one-accent treatment as the rest of the exec-facing
+// panels: a single consistent bar color, not a distinct hue per province
+// (Carin: "avoid a different colour for every category unless consistent
+// throughout the dashboard").
 function renderProvince(rows) {
-  const el = document.getElementById('provinceBars');
+  const el = document.getElementById('regionProvinceBars');
+  if (!el) return;
   el.innerHTML = '';
   const latestMonth = rows.reduce((max, r) => (!max || r.month > max) ? r.month : max, null);
   const latest = rows.filter(r => r.month === latestMonth).sort((a, b) => b.sales_value - a.sales_value);
@@ -927,7 +943,7 @@ function renderProvince(rows) {
     const row = document.createElement('div');
     row.className = 'bar-row';
     row.innerHTML = `<div class="bar-label">${r.province || 'Unknown'}</div>
-      <div class="bar-track"><div class="bar-seg" style="width:${pct}%;background:${colorFor(r.province)}"></div></div>
+      <div class="bar-track"><div class="bar-seg" style="width:${pct}%;background:#3e8fd8"></div></div>
       <div class="bar-val">${fmtR(r.sales_value)}</div>`;
     el.appendChild(row);
   });
@@ -959,7 +975,31 @@ function renderKpiCards(kpi) {
       <div class="kpi-label">${c.label.toUpperCase()}</div>
       <div class="kpi-value">${fmt(c.value)}</div>
       <div class="kpi-sub">vs Last Month ${deltaHtml(c.vs_prev_pct)}</div>
-      <div class="kpi-spark">${sparkline(c.trend, color)}</div>
+    </div>`;
+  }).join('');
+}
+
+// Period-grouped rows below the 5 headline cards: MTD/P3M/P6M/P12M, each
+// row pairing Units and Value on one line (Carin, 2026-08-16 -- "group
+// sales volume and sales value together, one line for each").
+function renderPeriodKpiRows(rolling) {
+  const deltaHtml = (pct) => {
+    if (pct == null) return '<span style="color:var(--nx-muted);">—</span>';
+    const up = pct >= 0;
+    return `<span class="delta ${up ? 'up' : 'down'}" style="font-size:10px;">${up ? '▲' : '▼'} ${Math.abs(pct * 100).toFixed(0)}%</span>`;
+  };
+  const periods = [
+    { key: 'mtd', label: 'MTD', vs: 'vs LM' },
+    { key: 'p3m', label: 'P3M', vs: 'vs PP' },
+    { key: 'p6m', label: 'P6M', vs: 'vs PP' },
+    { key: 'p12m', label: 'P12M', vs: 'vs PP' },
+  ];
+  document.getElementById('periodKpiRows').innerHTML = periods.map(p => {
+    const d = rolling[p.key] || {};
+    return `<div class="period-kpi-row">
+      <div class="period-label">${p.label}</div>
+      <div class="period-metric"><span class="m-label">Units</span> <span class="m-value">${fmtN(d.sales_units)}</span> <span class="m-delta">${deltaHtml(d.units_vs_pct)}</span></div>
+      <div class="period-metric"><span class="m-label">Value</span> <span class="m-value">${fmtR(d.sales_value)}</span> <span class="m-delta">${deltaHtml(d.value_vs_pct)}</span></div>
     </div>`;
   }).join('');
 }
@@ -968,6 +1008,12 @@ function renderKpiCards(kpi) {
 // Bucket (bucket_summary) panels -- same row shape (bar-list, not a dense
 // grid, per Carin's "not loving the Power BI look" feedback): name, a
 // value-share bar, the share %, and a colored vs-prior-12M delta.
+// Notation is deliberately explicit and separates the two different
+// numbers a single "▼8%" used to conflate (Carin, 2026-08-16): share of
+// total (a point-in-time snapshot) vs share CHANGE in percentage points
+// (a trend) vs sales growth % (a totally different metric, units/value
+// vs a prior period). All three shown, each labeled, so nothing is
+// ambiguous about what moved.
 function renderBucketBars(elId, rows) {
   const el = document.getElementById(elId);
   el.innerHTML = '';
@@ -975,16 +1021,22 @@ function renderBucketBars(elId, rows) {
   const max = Math.max(1, ...sorted.map(r => Number(r.val_12m || 0)));
   sorted.forEach(r => {
     const pct = (Number(r.val_12m || 0) / max * 100).toFixed(1);
-    const share = r.val_12m_share == null ? '—' : (r.val_12m_share * 100).toFixed(0) + '%';
+    const share = r.val_12m_share == null ? '—' : (r.val_12m_share * 100).toFixed(1) + '% share';
+    const ppChange = r.val_12m_share_pp_change;
+    const ppHtml = ppChange == null ? '—pp vs prior 12M'
+      : `<span class="delta ${ppChange >= 0 ? 'up' : 'down'}">${ppChange >= 0 ? '+' : ''}${(ppChange * 100).toFixed(1)}pp</span> vs prior 12M`;
     const d = r.val_12m_vs_pp;
-    const deltaHtml = d == null ? '<span style="color:var(--nx-muted);">—</span>'
-      : `<span class="delta ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d * 100).toFixed(0)}%</span>`;
+    const salesHtml = d == null ? 'Sales —'
+      : `Sales <span class="delta ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '+' : ''}${(d * 100).toFixed(1)}%</span>`;
     const row = document.createElement('div');
-    row.className = 'segment-row';
-    row.innerHTML = `<div class="segment-label">${r.bucket}</div>
-      <div class="bar-track"><div class="bar-seg" style="width:${pct}%;background:${colorFor(r.bucket)}"></div></div>
-      <div class="segment-share">${share}</div>
-      <div class="bar-val">${deltaHtml}</div>`;
+    row.className = 'segment-row-v2';
+    row.innerHTML = `
+      <div class="segment-row-v2-top">
+        <div class="segment-label">${r.bucket}</div>
+        <div class="bar-track"><div class="bar-seg" style="width:${pct}%;background:${colorFor(r.bucket)}"></div></div>
+        <div class="bar-val">${fmtR(r.val_12m)}</div>
+      </div>
+      <div class="segment-row-v2-notation">${share} · ${ppHtml} · ${salesHtml}</div>`;
     el.appendChild(row);
   });
   if (!sorted.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">No data for this scope.</div>';
@@ -1040,86 +1092,77 @@ function renderBrandMovers(rows) {
   if (!deduped.length) tbody.innerHTML = '<tr><td colspan="4" style="color:var(--nx-muted);">No brand mover data for this scope.</td></tr>';
 }
 
-let categoryTrendChart = null;
-
-function renderCategory(rows) {
-  const el = document.getElementById('categoryBars');
-  el.innerHTML = '';
-  const latestMonth = rows.reduce((max, r) => (!max || r.month > max) ? r.month : max, null);
-  // category is raw source text, not run through a cleanup mapper like
-  // store/brand are (274 distinct values seen in one build) -- capping to
-  // the top values keeps this readable until that mapper exists.
-  const latest = rows.filter(r => r.month === latestMonth).sort((a, b) => b.sales_value - a.sales_value).slice(0, 12);
-  const max = Math.max(1, ...latest.map(r => Number(r.sales_value || 0)));
-  latest.forEach(r => {
-    const pct = (Number(r.sales_value || 0) / max * 100).toFixed(1);
-    const row = document.createElement('div');
-    row.className = 'bar-row';
-    row.innerHTML = `<div class="bar-label">${r.category || 'Unknown'}</div>
-      <div class="bar-track"><div class="bar-seg" style="width:${pct}%;background:${colorFor(r.category)}"></div></div>
-      <div class="bar-val">${fmtR(r.sales_value)}</div>`;
-    el.appendChild(row);
+// category_monthly carries every month per category -- both new panels
+// derive from the same two months (latest + prior) rather than needing a
+// separate fetch. category is raw source text, not run through a cleanup
+// mapper like store/brand are (274 distinct values seen in one build), so
+// both panels cap to a handful of rows rather than trying to show all of it.
+function _categorySnapshot(rows) {
+  const months = [...new Set(rows.map(r => r.month))].sort();
+  const latestMonth = months[months.length - 1];
+  const priorMonth = months[months.length - 2];
+  const byCatLatest = {}, byCatPrior = {};
+  rows.forEach(r => {
+    if (r.month === latestMonth) byCatLatest[r.category] = (byCatLatest[r.category] || 0) + Number(r.sales_value || 0);
+    if (r.month === priorMonth) byCatPrior[r.category] = (byCatPrior[r.category] || 0) + Number(r.sales_value || 0);
   });
-  if (!latest.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">No category data for this scope.</div>';
+  const total = Object.values(byCatLatest).reduce((s, v) => s + v, 0);
+  const cats = Object.keys(byCatLatest).map(cat => ({
+    category: cat,
+    value: byCatLatest[cat],
+    share: total ? byCatLatest[cat] / total : null,
+    mom: _pc(byCatLatest[cat], byCatPrior[cat]),
+  })).sort((a, b) => b.value - a.value);
+  return { cats, total, latestMonth, priorMonth };
 }
 
-function renderCategoryTrend(rows) {
-  document.getElementById('categoryTrendTag').textContent = currentClient || 'all clients';
-  const byMonth = {};
-  const categories = new Set();
-  rows.forEach(r => {
-    categories.add(r.category);
-    byMonth[r.month] = byMonth[r.month] || {};
-    byMonth[r.month][r.category] = (byMonth[r.month][r.category] || 0) + Number(r.sales_value || 0);
-  });
-  const months = Object.keys(byMonth).sort();
-  // Top 5 categories by total value keep their own line; the rest fold into
-  // "Other" so a client with dozens of categories doesn't turn the legend
-  // into unreadable noise (same reasoning as the categorical-hues rule --
-  // more than a handful of series stops being identity-readable at a glance).
-  const totals = {};
-  categories.forEach(c => { totals[c] = months.reduce((s, m) => s + (byMonth[m][c] || 0), 0); });
-  const topCats = [...categories].sort((a, b) => totals[b] - totals[a]).slice(0, 5);
-  const palette = ['#eb7a2b', '#3e8fd8', '#5fb684', '#9dc4ec', '#e0b34a'];
+function renderCategoryMixTable(rows) {
+  const { cats } = _categorySnapshot(rows);
+  const top5 = cats.slice(0, 5);
+  const other = cats.slice(5);
+  const otherValue = other.reduce((s, c) => s + c.value, 0);
+  const otherShare = other.reduce((s, c) => s + (c.share || 0), 0);
+  const momHtml = (v) => v == null ? '<span style="color:var(--nx-muted);">—</span>'
+    : `<span class="delta ${v >= 0 ? 'up' : 'down'}">${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%</span>`;
 
-  const datasets = topCats.map((cat, i) => ({
-    label: cat,
-    data: months.map(m => byMonth[m][cat] || 0),
-    borderColor: palette[i],
-    backgroundColor: palette[i],
-    borderWidth: 2,
-    pointRadius: 0,
-    pointHoverRadius: 3,
-    tension: 0.25,
-  }));
-  const hasOther = categories.size > topCats.length;
-  if (hasOther) {
-    datasets.push({
-      label: 'Other',
-      data: months.map(m => {
-        const known = topCats.reduce((s, c) => s + (byMonth[m][c] || 0), 0);
-        const total = Object.values(byMonth[m]).reduce((s, v) => s + v, 0);
-        return total - known;
-      }),
-      borderColor: '#5f83a8', backgroundColor: '#5f83a8',
-      borderWidth: 2, pointRadius: 0, pointHoverRadius: 3, tension: 0.25, borderDash: [4, 3],
-    });
-  }
+  const tbody = document.querySelector('#categoryMixTable tbody');
+  tbody.innerHTML = top5.map(c => `
+    <tr><td>${titleCase(c.category) || c.category}</td><td>${fmtR(c.value)}</td>
+      <td>${c.share == null ? '—' : (c.share * 100).toFixed(1) + '%'}</td><td>${momHtml(c.mom)}</td></tr>
+  `).join('') + (other.length ? `
+    <tr style="color:var(--nx-muted);"><td>Other categories (${other.length})</td><td>${fmtR(otherValue)}</td>
+      <td>${(otherShare * 100).toFixed(1)}%</td><td>—</td></tr>` : '');
+  if (!top5.length) tbody.innerHTML = '<tr><td colspan="4" style="color:var(--nx-muted);">No category data for this scope.</td></tr>';
+}
 
-  const ctx = document.getElementById('categoryTrendChart').getContext('2d');
-  if (categoryTrendChart) categoryTrendChart.destroy();
-  categoryTrendChart = new Chart(ctx, {
-    type: 'line',
-    data: { labels: months.map(fmtMonth), datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, position: 'bottom', labels: { color: '#c9d7e6', boxWidth: 10, font: { size: 9 } } } },
-      scales: {
-        y: { ticks: { color: '#78a3cf', callback: (v) => fmtR(v) }, grid: { color: 'rgba(157,196,236,.10)' } },
-        x: { ticks: { color: '#78a3cf' }, grid: { display: false } }
-      }
-    }
-  });
+// Four ranked driver cards from the same category snapshot -- growth/
+// decline contributors, concentration, and the single largest abnormal
+// swing. All neutral-colored except the green/red movement indicator, per
+// Carin's note that a distinct hue per category doesn't add meaning here.
+function renderExecDrivers(rows) {
+  const { cats } = _categorySnapshot(rows);
+  const withMom = cats.filter(c => c.mom != null);
+  const top5Share = cats.slice(0, 5).reduce((s, c) => s + (c.share || 0), 0);
+  const growth = [...withMom].sort((a, b) => b.mom - a.mom)[0];
+  const decline = [...withMom].sort((a, b) => a.mom - b.mom)[0];
+  const abnormal = [...withMom].sort((a, b) => Math.abs(b.mom) - Math.abs(a.mom))[0];
+
+  const cards = [];
+  if (growth) cards.push({ label: 'Growth Contributor', kind: 'good',
+    html: `<b>${titleCase(growth.category) || growth.category}</b> +${(growth.mom * 100).toFixed(1)}% month-on-month, adding ${fmtR(growth.value - growth.value / (1 + growth.mom))}.` });
+  if (decline) cards.push({ label: 'Decline Contributor', kind: 'bad',
+    html: `<b>${titleCase(decline.category) || decline.category}</b> ${(decline.mom * 100).toFixed(1)}% month-on-month.` });
+  cards.push({ label: 'Sales Concentration', kind: 'warn',
+    html: `Top 5 categories are <b>${(top5Share * 100).toFixed(1)}%</b> of total sales this month.` });
+  if (abnormal && abnormal !== growth && abnormal !== decline) cards.push({ label: 'Performance Alert', kind: 'warn',
+    html: `<b>${titleCase(abnormal.category) || abnormal.category}</b> moved ${abnormal.mom >= 0 ? '+' : ''}${(abnormal.mom * 100).toFixed(1)}% — the largest swing this month.` });
+
+  const el = document.getElementById('execDrivers');
+  el.innerHTML = cards.slice(0, 4).map(c => `
+    <div class="insight-card ${c.kind}"><div class="badge">${c.kind === 'good' ? '↑' : c.kind === 'bad' ? '↓' : '!'}</div>
+      <div class="txt"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--nx-muted);font-weight:700;margin-bottom:3px;">${c.label}</div>${c.html}</div></div>
+  `).join('');
+  if (!cards.length) el.innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">Not enough data for drivers at this scope.</div>';
 }
 
 // Simple rule-based insight generation from data already on screen -- no
@@ -1257,6 +1300,14 @@ async function loadDimensionPage(dimension) {
   const data = await apiFetchJson(`dimension_breakdown?dimension=${dimension}` + qs().replace(/^\?/, '&'));
   const key = dimension === 'banner' ? 'channel' : dimension;
   renderDimensionPage(key, dimension, data.rows);
+  if (dimension === 'region') {
+    const province = await apiFetchJson('province_monthly' + qs());
+    renderProvince(province);
+  }
+  if (dimension === 'banner') {
+    const bucket = await apiFetchJson('bucket_summary' + qs());
+    renderBucketBars('bucketBars', bucket);
+  }
 }
 
 function renderDimensionPage(contentKey, dimension, rows) {
