@@ -50,6 +50,7 @@ def main():
     dump('kpi_cards', sq.get_kpi_cards(con, None, {}))
     dump('regions', sq.get_regions(con, None, {}))
     dump('products', sq.get_products(con, None, {}))
+    dump('price_volume_bridge', sq.get_price_volume_bridge(con, None, {}))
     dump('insights_stores_declining', sq.get_insights_stores(con, None, {'type': 'declining'}))
     dump('insights_stores_growing', sq.get_insights_stores(con, None, {'type': 'growing'}))
     dump('insights_stores_at_risk', sq.get_insights_stores(con, None, {'type': 'at_risk'}))

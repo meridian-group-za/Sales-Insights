@@ -81,6 +81,19 @@
   .reset-filters-btn{flex:0 0 auto;height:32px;padding:0 14px;border-radius:8px;background:rgba(157,196,236,.08);border:1px solid rgba(157,196,236,.2);color:var(--nx-text);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;align-self:flex-end;}
   .reset-filters-btn:hover{background:rgba(157,196,236,.16);color:#fff;}
 
+  .bridge-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .bridge-card{flex:1;min-width:140px;background:rgba(157,196,236,.05);border:1px solid rgba(157,196,236,.14);border-radius:10px;padding:14px 16px;text-align:center;}
+  .bridge-card.net{background:rgba(235,122,43,.08);border-color:rgba(235,122,43,.3);}
+  .bridge-card .bridge-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--nx-muted);font-weight:700;}
+  .bridge-card .bridge-value{font-size:18px;font-weight:700;margin-top:6px;}
+  .bridge-op{font-size:18px;color:var(--nx-muted);font-weight:700;}
+
+  .driver-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(157,196,236,.08);}
+  .driver-row:last-child{border-bottom:none;}
+  .driver-rank{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:rgba(157,196,236,.10);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--nx-text);}
+  .driver-name{flex:1;font-size:11.5px;color:var(--nx-text);font-weight:600;}
+  .driver-value{font-size:11px;font-weight:700;text-align:right;white-space:nowrap;}
+
   .scroll{max-width:1420px;margin:0 auto;padding:30px 24px 48px;}
   .page{display:none;}
   .page.active{display:block;}
@@ -104,13 +117,15 @@
   .delta.up{color:var(--good);}
   .delta.down{color:var(--bad);}
   .kpi-footline{font-size:10.5px;color:var(--nx-muted);margin-bottom:12px;}
-  .period-kpi-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
-  .period-kpi-row{display:grid;grid-template-columns:56px 1fr 1fr;gap:8px;align-items:center;background:rgba(157,196,236,.04);border:1px solid rgba(157,196,236,.10);border-radius:10px;padding:8px 12px;}
-  .period-kpi-row .period-label{font-size:10px;font-weight:800;color:var(--nx-muted);text-transform:uppercase;}
-  .period-kpi-row .period-metric{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-  .period-kpi-row .period-metric .m-label{font-size:9.5px;color:var(--nx-muted);}
-  .period-kpi-row .period-metric .m-value{font-size:13px;font-weight:700;color:var(--nx-heading);}
-  .period-kpi-row .period-metric .m-delta{font-size:10px;}
+  .period-kpi-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .period-kpi-row{display:grid;grid-template-columns:64px 1fr 1fr;gap:12px;align-items:stretch;
+    border-radius:12px;background:linear-gradient(145deg,rgba(24,71,119,.42),rgba(13,43,80,.42));
+    border:1px solid rgba(157,196,236,.20);box-shadow:0 10px 24px rgba(0,0,0,.12);padding:12px 16px;}
+  .period-kpi-row .period-label{display:flex;align-items:center;font-size:11px;font-weight:800;color:var(--nx-orange);text-transform:uppercase;letter-spacing:.04em;}
+  .period-kpi-row .period-metric{display:flex;flex-direction:column;gap:3px;padding:0 14px;border-left:1px solid rgba(157,196,236,.14);}
+  .period-kpi-row .period-metric .m-label{font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--nx-muted);}
+  .period-kpi-row .period-metric .m-value{font-size:16px;font-weight:700;color:var(--nx-heading);}
+  .period-kpi-row .period-metric .m-delta{font-size:10.5px;}
 
   .segment-row{display:grid;grid-template-columns:130px 1fr 60px 74px;gap:8px;align-items:center;margin:7px 0;}
   .segment-label{font-size:9.5px;color:var(--nx-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -318,19 +333,44 @@
            names the business question it will answer so the nav isn't a
            dead end -- just not wired to data yet. -->
       <div class="page" data-page="trend">
+        <div class="kpi-row" id="trendKpiRow"></div>
+
         <div class="panel">
-          <h2>Monthly Trend — This Year vs Last <span class="tag" id="trendPageTag"></span></h2>
-          <div class="key-points" id="trendKeyPoints"></div>
-          <div class="grid-2b">
-            <div>
-              <div class="chart-label">Volume by month (units)</div>
-              <div class="chart-wrap"><canvas id="trendVolChart"></canvas></div>
-            </div>
-            <div>
-              <div class="chart-label">Value by month (Rand)</div>
-              <div class="chart-wrap"><canvas id="trendValChart"></canvas></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:4px;">
+            <h2 style="border:none;padding-bottom:0;margin-bottom:0;">Sales Performance Trend <span class="tag" id="trendPageTag"></span></h2>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;">
+              <div class="metric-toggle" id="trendMetricToggle">
+                <button type="button" data-v="value" class="active">Sales Value</button>
+                <button type="button" data-v="units">Units</button>
+                <button type="button" data-v="avg_price">Avg Price</button>
+              </div>
+              <div class="metric-toggle" id="trendComparisonToggle">
+                <button type="button" data-v="year" class="active">vs Previous Year</button>
+                <button type="button" data-v="month">vs Previous Month</button>
+              </div>
+              <div class="metric-toggle" id="trendPeriodToggle">
+                <button type="button" data-v="12" class="active">12M</button>
+                <button type="button" data-v="24">24M</button>
+              </div>
             </div>
           </div>
+          <div class="chart-wrap" style="height:340px;"><canvas id="trendMainChart"></canvas></div>
+        </div>
+
+        <div class="grid-2b">
+          <div class="panel">
+            <h2>Monthly YoY Variance <span class="tag">sales value, R</span></h2>
+            <div class="chart-wrap"><canvas id="trendYoyChart"></canvas></div>
+          </div>
+          <div class="panel">
+            <h2>Key Trend Drivers <span class="tag">latest month vs prior</span></h2>
+            <div id="trendDrivers"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Price-Volume-Mix Bridge <span class="tag" id="bridgeTag">latest month vs prior month</span></h2>
+          <div id="priceVolumeBridge"></div>
         </div>
       </div>
 
@@ -683,6 +723,7 @@ async function mockFetchJson(relativePath) {
   }
   if (path === 'monthly_trend') return loadMockFile('monthly_trend');
   if (path === 'price_mix') return loadMockFile('price_mix');
+  if (path === 'price_volume_bridge') return loadMockFile('price_volume_bridge');
   if (path === 'kpi_cards') return loadMockFile('kpi_cards');
   if (path === 'regions') return loadMockFile('regions');
   if (path === 'products') return loadMockFile('products');
@@ -1040,8 +1081,16 @@ function renderPeriodKpiRows(rolling) {
     const d = rolling[p.key] || {};
     return `<div class="period-kpi-row">
       <div class="period-label">${p.label}</div>
-      <div class="period-metric"><span class="m-label">Units</span> <span class="m-value">${fmtN(d.sales_units)}</span> <span class="m-delta">${deltaHtml(d.units_vs_pct)}</span></div>
-      <div class="period-metric"><span class="m-label">Value</span> <span class="m-value">${fmtR(d.sales_value)}</span> <span class="m-delta">${deltaHtml(d.value_vs_pct)}</span></div>
+      <div class="period-metric">
+        <span class="m-label">Units ${p.vs}</span>
+        <span class="m-value">${fmtN(d.sales_units)}</span>
+        <span class="m-delta">${deltaHtml(d.units_vs_pct)}</span>
+      </div>
+      <div class="period-metric">
+        <span class="m-label">Value ${p.vs}</span>
+        <span class="m-value">${fmtR(d.sales_value)}</span>
+        <span class="m-delta">${deltaHtml(d.value_vs_pct)}</span>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1270,66 +1319,203 @@ let dimensionMetric = { region: 'value', brand: 'value', banner: 'value' };
 let priceMixLoaded = false;
 let priceMixChart = null;
 
-async function loadTrendPage() {
-  trendPageLoaded = true;
-  const rows = await apiFetchJson('monthly_trend' + qs());
-  renderTrendPage(rows);
-}
-
-function renderTrendPage(rows) {
-  document.getElementById('trendPageTag').textContent = currentClient || 'all clients';
-  const byYearMonth = {};
-  rows.forEach(r => {
-    const d = new Date(r.month);
-    const y = d.getFullYear(), m = d.getMonth();
-    byYearMonth[y] = byYearMonth[y] || {};
-    byYearMonth[y][m] = { value: Number(r.sales_value || 0), units: Number(r.sales_units || 0) };
-  });
-  const years = Object.keys(byYearMonth).map(Number).sort((a, b) => b - a);
-  const curYear = years[0], lastYear = curYear - 1;
-  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const monthsWithData = Object.keys(byYearMonth[curYear] || {}).map(Number).sort((a, b) => a - b);
-
-  const mk = (metric) => ({
-    labels: monthsWithData.map(m => monthLabels[m]),
-    datasets: [
-      { label: String(lastYear), data: monthsWithData.map(m => (byYearMonth[lastYear]?.[m]?.[metric]) ?? null), backgroundColor: '#8696a8' },
-      { label: String(curYear), data: monthsWithData.map(m => (byYearMonth[curYear]?.[m]?.[metric]) ?? null), backgroundColor: '#eb7a2b' },
-    ],
-  });
-  const opts = (fmt) => ({
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: true, position: 'bottom', labels: { color: '#c9d7e6', boxWidth: 10, font: { size: 9 } } } },
-    scales: { y: { ticks: { color: '#78a3cf', callback: fmt }, grid: { color: 'rgba(157,196,236,.10)' } }, x: { ticks: { color: '#78a3cf' }, grid: { display: false } } },
-  });
-
-  if (trendVolChart) trendVolChart.destroy();
-  trendVolChart = new Chart(document.getElementById('trendVolChart').getContext('2d'), { type: 'bar', data: mk('units'), options: opts(fmtN) });
-  if (trendValChart) trendValChart.destroy();
-  trendValChart = new Chart(document.getElementById('trendValChart').getContext('2d'), { type: 'bar', data: mk('value'), options: opts(fmtR) });
-
-  // Key points, computed the same way as the rest of the dashboard's
-  // insight cards -- real numbers dropped into fixed sentence templates,
-  // not a live AI call (see conversation 2026-08-13: this reads the same
-  // as the reference tool's "auto-generated" summaries, but is actually
-  // deterministic and can't misstate a number since nothing is generated,
-  // only substituted).
-  const curTotalVal = monthsWithData.reduce((s, m) => s + (byYearMonth[curYear]?.[m]?.value || 0), 0);
-  const lyTotalVal = monthsWithData.reduce((s, m) => s + (byYearMonth[lastYear]?.[m]?.value || 0), 0);
-  const curTotalUnits = monthsWithData.reduce((s, m) => s + (byYearMonth[curYear]?.[m]?.units || 0), 0);
-  const lyTotalUnits = monthsWithData.reduce((s, m) => s + (byYearMonth[lastYear]?.[m]?.units || 0), 0);
-  const latestM = monthsWithData[monthsWithData.length - 1];
-  const latest = byYearMonth[curYear]?.[latestM];
-  const points = [
-    `Volume ${fmtPctSigned(_pc(curTotalUnits, lyTotalUnits))} and value ${fmtPctSigned(_pc(curTotalVal, lyTotalVal))} year-to-date vs last year.`,
-    latest ? `${monthLabels[latestM]} sold ${fmtN(latest.units)} units / ${fmtR(latest.value)}.` : '',
-    `Average price is ${fmtR(curTotalUnits ? curTotalVal / curTotalUnits : 0)}/unit.`,
-  ].filter(Boolean);
-  document.getElementById('trendKeyPoints').innerHTML = `<ul>${points.map(p => `<li>${p}</li>`).join('')}</ul>`;
-}
-
 function _pc(cur, prior) { return prior ? (cur - prior) / prior : null; }
 function fmtPctSigned(p) { return p == null ? '—' : (p >= 0 ? '+' : '') + (p * 100).toFixed(1) + '%'; }
+function _monthIdx(m) { const d = new Date(m); return d.getFullYear() * 12 + d.getMonth(); }
+function fmtRShort(v) { return v == null ? '—' : 'R' + (v / 1e6).toFixed(0) + 'm'; }
+function fmtNShort(v) { return v == null ? '—' : (v / 1e6).toFixed(0) + 'm'; }
+
+// Trend page state -- Metric/Comparison/Period controls all just re-render
+// from the same already-fetched data, no re-fetch needed.
+let trendPageData = null;
+let trendMetric = 'value';
+let trendComparison = 'year';
+let trendPeriodMonths = 12;
+let trendMainChart = null;
+let trendYoyChart = null;
+
+async function loadTrendPage() {
+  trendPageLoaded = true;
+  const [monthly, rolling, bridge, category] = await Promise.all([
+    apiFetchJson('monthly_trend' + qs()),
+    apiFetchJson('rolling_summary' + qs()),
+    apiFetchJson('price_volume_bridge' + qs()),
+    apiFetchJson('category_monthly' + qs({ category: '' })),
+  ]);
+  trendPageData = { monthly, rolling, bridge, category };
+  wireTrendControls();
+  renderTrendPage();
+}
+
+function wireTrendControls() {
+  const wire = (id, apply) => {
+    const el = document.getElementById(id);
+    if (el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('[data-v]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        apply(btn.getAttribute('data-v'));
+        el.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('active', b === btn));
+        renderTrendPage();
+      });
+    });
+  };
+  wire('trendMetricToggle', (v) => { trendMetric = v; });
+  wire('trendComparisonToggle', (v) => { trendComparison = v; });
+  wire('trendPeriodToggle', (v) => { trendPeriodMonths = Number(v); });
+}
+
+function renderTrendPage() {
+  const { monthly, rolling, bridge, category } = trendPageData;
+  document.getElementById('trendPageTag').textContent =
+    `${currentClient || 'All clients'} · ${monthly.length ? fmtMonth(monthly[0].month) + '–' + fmtMonth(monthly[monthly.length - 1].month) : ''}`;
+
+  const byIdx = {};
+  monthly.forEach(r => { byIdx[_monthIdx(r.month)] = { month: r.month, value: Number(r.sales_value || 0), units: Number(r.sales_units || 0) }; });
+  const latestComplete = rolling.latest_month;
+  if (!latestComplete) { document.getElementById('trendKpiRow').innerHTML = '<div style="font-size:11px;color:var(--nx-muted);">Not enough history yet.</div>'; return; }
+  const latestIdx = _monthIdx(latestComplete);
+
+  const metricOf = (rec) => {
+    if (!rec) return null;
+    if (trendMetric === 'value') return rec.value;
+    if (trendMetric === 'units') return rec.units;
+    return rec.units ? rec.value / rec.units : null;
+  };
+  const fmtMetric = trendMetric === 'units' ? fmtN : fmtR;
+  const fmtMetricShort = trendMetric === 'units' ? fmtNShort : fmtRShort;
+
+  // ---- Top KPI row: YTD Sales / YTD Units / Avg Unit Price / Latest Complete Month ----
+  const jan = new Date(latestComplete).getFullYear() * 12; // Jan of the complete month's year
+  let ytdVal = 0, ytdUnits = 0, ytdValLY = 0, ytdUnitsLY = 0;
+  for (let i = jan; i <= latestIdx; i++) {
+    if (byIdx[i]) { ytdVal += byIdx[i].value; ytdUnits += byIdx[i].units; }
+    if (byIdx[i - 12]) { ytdValLY += byIdx[i - 12].value; ytdUnitsLY += byIdx[i - 12].units; }
+  }
+  const latestRec = byIdx[latestIdx], latestRecLY = byIdx[latestIdx - 12];
+  const kpiCards = [
+    { label: 'YTD Sales', value: fmtR(ytdVal), delta: _pc(ytdVal, ytdValLY), color: '#eb7a2b' },
+    { label: 'YTD Units', value: fmtN(ytdUnits), delta: _pc(ytdUnits, ytdUnitsLY), color: '#3e8fd8' },
+    { label: 'Avg Unit Price', value: fmtR(ytdUnits ? ytdVal / ytdUnits : null), delta: _pc(ytdUnits ? ytdVal / ytdUnits : null, ytdUnitsLY ? ytdValLY / ytdUnitsLY : null), color: '#5fb684' },
+    { label: 'Latest Complete Month', value: fmtMonth(latestComplete), sub: fmtR(latestRec?.value), delta: _pc(latestRec?.value, latestRecLY?.value), color: '#c77dd6' },
+  ];
+  document.getElementById('trendKpiRow').innerHTML = kpiCards.map(c => `
+    <div class="kpi-card" style="border-left-color:${c.color}">
+      <div class="kpi-label">${c.label.toUpperCase()}</div>
+      <div class="kpi-value" style="${c.sub ? 'font-size:16px;' : ''}">${c.value}</div>
+      ${c.sub ? `<div class="kpi-context">${c.sub}</div>` : ''}
+      <div class="kpi-sub">${c.delta == null ? '—' : `<span class="delta ${c.delta >= 0 ? 'up' : 'down'}">${c.delta >= 0 ? '▲' : '▼'} ${Math.abs(c.delta * 100).toFixed(1)}%</span> vs prior year`}</div>
+    </div>`).join('');
+
+  // ---- Main chart: window of trendPeriodMonths ending at latestComplete,
+  // plus any partial MTD month(s) after it ----
+  const winStart = latestIdx - trendPeriodMonths + 1;
+  const winIdxs = [];
+  for (let i = winStart; i <= latestIdx; i++) winIdxs.push(i);
+  const mtdIdxs = Object.keys(byIdx).map(Number).filter(i => i > latestIdx).sort((a, b) => a - b);
+  const allIdxs = [...winIdxs, ...mtdIdxs];
+
+  const labelFor = (i) => { const d = new Date(); d.setFullYear(Math.floor(i / 12)); d.setMonth(i % 12, 1); return d; };
+  const monthName = (i) => labelFor(i).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' });
+  const labels = allIdxs.map(monthName);
+
+  const actual = allIdxs.map(i => metricOf(byIdx[i]));
+  const priorYear = allIdxs.map(i => trendComparison === 'year' ? metricOf(byIdx[i - 12]) : null);
+  const rollingAvg = allIdxs.map((i, pos) => {
+    const vals = [0, 1, 2].map(k => metricOf(byIdx[allIdxs[pos - k]])).filter(v => v != null);
+    return vals.length === 3 ? vals.reduce((s, v) => s + v, 0) / 3 : null;
+  });
+
+  const winActual = winIdxs.map(i => metricOf(byIdx[i])).filter(v => v != null);
+  const avgLine = winActual.length ? winActual.reduce((s, v) => s + v, 0) / winActual.length : null;
+  const maxVal = Math.max(...winActual), minVal = Math.min(...winActual);
+  const peakPos = actual.findIndex((v, i) => i < winIdxs.length && v === maxVal);
+  const lowPos = actual.findIndex((v, i) => i < winIdxs.length && v === minVal);
+  const latestPos = winIdxs.length - 1;
+
+  const pointRadii = allIdxs.map((_, i) => (i === peakPos || i === lowPos || i === latestPos) ? 5 : 0);
+  const pointColors = allIdxs.map((_, i) => i === latestPos ? '#eb7a2b' : i === peakPos ? '#5fb684' : i === lowPos ? '#e0714f' : '#eb7a2b');
+
+  const datasets = [
+    { label: `Current (${trendComparison === 'year' ? 'this year' : 'this period'})`, data: actual,
+      borderColor: '#eb7a2b', backgroundColor: 'rgba(235,122,43,.10)', borderWidth: 2, fill: true, tension: 0.25,
+      pointRadius: pointRadii, pointBackgroundColor: pointColors, pointBorderColor: pointColors, pointHoverRadius: 5 },
+    { label: 'Rolling 3M avg', data: rollingAvg, borderColor: '#3e8fd8', borderWidth: 1.5, borderDash: [2, 3], fill: false, pointRadius: 0, tension: 0.25 },
+    { label: 'Average (period)', data: allIdxs.map(() => avgLine), borderColor: 'rgba(157,196,236,.35)', borderWidth: 1, borderDash: [5, 4], fill: false, pointRadius: 0 },
+  ];
+  if (trendComparison === 'year') {
+    datasets.splice(1, 0, { label: 'Prior year', data: priorYear, borderColor: '#8696a8', borderWidth: 1.5, borderDash: [4, 3], fill: false, pointRadius: 0, tension: 0.25 });
+  }
+
+  if (trendMainChart) trendMainChart.destroy();
+  trendMainChart = new Chart(document.getElementById('trendMainChart').getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { color: '#c9d7e6', boxWidth: 10, font: { size: 9 } } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${fmtMetric(ctx.raw)}`,
+            afterBody: (items) => {
+              const i = items[0]?.dataIndex; const idx = allIdxs[i]; const rec = byIdx[idx];
+              return rec ? [`Stores contributing: latest data only shown per-month here`] : [];
+            },
+          },
+        },
+      },
+      scales: {
+        y: { ticks: { color: '#9dc4ec', callback: fmtMetricShort }, grid: { color: 'rgba(157,196,236,.10)' } },
+        x: { ticks: { color: '#9dc4ec', maxRotation: 0, minRotation: 0, callback: (val, i) => { const idx = allIdxs[i]; return (idx % 3 === (jan % 3)) ? labels[i] : ''; } }, grid: { display: false } },
+      },
+    },
+  });
+
+  // ---- Monthly YoY Variance bars (last ~7 months) ----
+  const yoyIdxs = winIdxs.slice(-7);
+  const yoyLabels = yoyIdxs.map(monthName);
+  const yoyVals = yoyIdxs.map(i => {
+    const cur = metricOf(byIdx[i]), py = metricOf(byIdx[i - 12]);
+    return (cur != null && py != null) ? cur - py : null;
+  });
+  if (trendYoyChart) trendYoyChart.destroy();
+  trendYoyChart = new Chart(document.getElementById('trendYoyChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: yoyLabels, datasets: [{ data: yoyVals, backgroundColor: yoyVals.map(v => v == null ? '#5f83a8' : v >= 0 ? '#5fb684' : '#e0714f') }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { ticks: { color: '#9dc4ec', callback: fmtMetricShort }, grid: { color: 'rgba(157,196,236,.10)' } }, x: { ticks: { color: '#9dc4ec' }, grid: { display: false } } },
+    },
+  });
+
+  // ---- Key Trend Drivers (category MoM movers, reusing the same snapshot
+  // logic as Executive Overview's Category Mix) ----
+  const { cats } = _categorySnapshot(category);
+  const ranked = [...cats.filter(c => c.mom != null)].sort((a, b) => Math.abs(b.mom * b.value) - Math.abs(a.mom * a.value)).slice(0, 4);
+  document.getElementById('trendDrivers').innerHTML = ranked.map((c, i) => {
+    const delta = c.value - c.value / (1 + c.mom);
+    return `<div class="driver-row">
+      <div class="driver-rank">${i + 1}</div>
+      <div class="driver-name">${titleCase(c.category) || c.category}</div>
+      <div class="pill ${c.mom >= 0 ? 'good' : 'bad'}">${c.mom >= 0 ? 'Positive' : 'Negative'}</div>
+      <div class="driver-value" style="color:${c.mom >= 0 ? 'var(--good)' : 'var(--bad)'}">${c.mom >= 0 ? '+' : ''}${fmtR(delta)}</div>
+    </div>`;
+  }).join('') || '<div style="font-size:11px;color:var(--nx-muted);">Not enough data for drivers.</div>';
+
+  // ---- Price-Volume-Mix Bridge ----
+  document.getElementById('bridgeTag').textContent = bridge.latest_month && bridge.prior_month
+    ? `${fmtMonth(bridge.prior_month)} → ${fmtMonth(bridge.latest_month)}` : 'latest month vs prior month';
+  const bcard = (label, val) => `<div class="bridge-card"><div class="bridge-label">${label}</div><div class="bridge-value" style="color:${val >= 0 ? 'var(--good)' : 'var(--bad)'}">${val >= 0 ? '+' : ''}${fmtR(val)}</div></div>`;
+  document.getElementById('priceVolumeBridge').innerHTML = `
+    <div class="bridge-row">
+      ${bcard('Volume', bridge.volume || 0)}<div class="bridge-op">+</div>
+      ${bcard('Price', bridge.price || 0)}<div class="bridge-op">+</div>
+      ${bcard('Mix', bridge.mix || 0)}<div class="bridge-op">=</div>
+      <div class="bridge-card net"><div class="bridge-label">Net Change</div><div class="bridge-value" style="color:${(bridge.net_change || 0) >= 0 ? 'var(--good)' : 'var(--bad)'}">${(bridge.net_change || 0) >= 0 ? '+' : ''}${fmtR(bridge.net_change || 0)}</div></div>
+    </div>`;
+}
 
 // Shared by Regions/Brands/Channels: a contribution list (each group's YTD
 // value/unit delta vs last year, as a bar) and a this-year-vs-last ranking
