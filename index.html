@@ -746,6 +746,8 @@ let currentClient = '';
 let currentMonth = '';
 let currentCategory = '';
 let currentBrand = '';
+let currentRegion = '';
+let currentProduct = '';
 
 // Category is capped to the top 60 by value in the dropdown -- category
 // text isn't run through a cleanup mapper yet (274 raw distinct values,
@@ -757,12 +759,15 @@ function qs(overrides) {
   const p = new URLSearchParams();
   const v = {
     client: currentClient, month: currentMonth, category: currentCategory, brand: currentBrand,
+    region: currentRegion, product: currentProduct,
     ...overrides,
   };
   if (v.client) p.set('client', v.client);
   if (v.month) p.set('month', v.month);
   if (v.category) p.set('category', v.category);
   if (v.brand) p.set('brand', v.brand);
+  if (v.region) p.set('region', v.region);
+  if (v.product) p.set('product', v.product);
   const s = p.toString();
   return s ? '?' + s : '';
 }
@@ -790,6 +795,13 @@ async function boot() {
   const allMonths = await apiFetchJson('client_monthly');
   const months = [...new Set(allMonths.map(r => r.month))].sort().reverse();
   const monthSel = document.getElementById('monthSelect');
+  // "" still means "no explicit filter" everywhere downstream (the backend
+  // resolves that to the latest COMPLETE month) -- only the label changes,
+  // showing the actual month instead of the word "Latest" (Carin, 2026-08-16).
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.textContent = months.length ? `${fmtMonth(months[0])} (latest)` : 'Latest';
+  monthSel.appendChild(defaultOpt);
   months.forEach(m => {
     const opt = document.createElement('option');
     opt.value = m; opt.textContent = fmtMonth(m);
@@ -814,6 +826,34 @@ async function boot() {
     brandSel.appendChild(opt);
   });
   brandSel.addEventListener('change', () => { currentBrand = brandSel.value; loadScope(); });
+
+  const regions = await apiFetchJson('regions');
+  const regionSel = document.getElementById('regionSelect');
+  regions.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.region; opt.textContent = titleCase(r.region) || r.region;
+    regionSel.appendChild(opt);
+  });
+  regionSel.addEventListener('change', () => { currentRegion = regionSel.value; loadScope(); });
+
+  // Product Description is raw free text (no barcode column exists in this
+  // data at all -- see the Product List mapper investigation, 2026-08-16),
+  // capped the same way Category is, for the same reason (a very long tail
+  // of near-duplicate SKU text isn't worth scrolling past).
+  const products = await apiFetchJson('products');
+  const productSel = document.getElementById('productSelect');
+  products.filter(hasName('product')).slice(0, CATEGORY_OPTION_LIMIT).forEach(pr => {
+    const opt = document.createElement('option');
+    opt.value = pr.product; opt.textContent = titleCase(pr.product) || pr.product;
+    productSel.appendChild(opt);
+  });
+  productSel.addEventListener('change', () => { currentProduct = productSel.value; loadScope(); });
+
+  document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+    currentClient = currentMonth = currentCategory = currentBrand = currentRegion = currentProduct = '';
+    [clientSel, monthSel, catSel, brandSel, regionSel, productSel].forEach(s => { s.value = ''; });
+    loadScope();
+  });
 
   await loadScope();
 }
@@ -845,6 +885,8 @@ async function loadScope() {
   const mockCaveats = [];
   if (MOCK_MODE && currentCategory && currentClient) mockCaveats.push('category filter overrides client in build mode');
   if (MOCK_MODE && currentBrand) mockCaveats.push('brand filter has no effect on KPIs/trend in build mode');
+  if (MOCK_MODE && currentRegion) mockCaveats.push('region filter has no effect on KPIs/trend in build mode');
+  if (MOCK_MODE && currentProduct) mockCaveats.push('product filter has no effect on KPIs/trend in build mode');
   document.getElementById('metaTag').dataset.base = document.getElementById('metaTag').dataset.base
     || document.getElementById('metaTag').textContent;
   document.getElementById('metaTag').textContent = document.getElementById('metaTag').dataset.base
