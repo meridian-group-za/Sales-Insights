@@ -303,12 +303,12 @@
       </sc-for>
     </section>
 
-    <section class="si-panel" style="padding: 17px 18px; margin-top: 10px">
+    <section class="si-panel" style="padding: 13px 16px; margin-top: 8px">
       <div style="display: flex; align-items: baseline; gap: 12px">
-        <h3 style="font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 15.5px; color: #f3f7fc; margin: 0; margin-right: auto">Executive intelligence</h3>
+        <h3 style="font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 14.5px; color: #f3f7fc; margin: 0; margin-right: auto">Executive intelligence</h3>
         <span style="font-size: 11px; color: #4A6B8A">Based on current filters</span>
       </div>
-      <p style="display: flex; align-items: baseline; flex-wrap: nowrap; gap: 7px; font-size: 14.5px; line-height: 1.4; font-weight: 500; color: #c9d7e6; margin: 12px 0 0; overflow-x: auto; white-space: nowrap">
+      <p style="display: flex; align-items: baseline; flex-wrap: nowrap; gap: 7px; font-size: 13.5px; line-height: 1.4; font-weight: 500; color: #c9d7e6; margin: 8px 0 0; overflow-x: auto; white-space: nowrap">
         <span style="color: #f2955c; font-weight: 600; text-transform: uppercase; letter-spacing: .04em">{{ narrativeScope }}</span>
         <span style="color: #4A6B8A">&mdash;</span>
         <span style="color: #ec6d25; font-weight: 700; font-size: 16px">{{ narrativeValue }}</span>
@@ -320,25 +320,25 @@
         <span style="color: #ec6d25; font-weight: 600">{{ narrativeStores }}</span><span>trading stores</span>
       </p>
 
-      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px">
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 11px">
         <sc-for list="{{ intelCards }}" as="c" hint-placeholder-count="3">
-          <div class="si-tile" style="display: flex; gap: 13px; padding: 14px 15px">
-            <div style="flex: none; width: 40px; height: 40px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: {{ c.iconBg }}; border: 1px solid {{ c.iconBorder }}">
-              <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="{{ c.iconColor }}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.icon }}"></path></svg>
+          <div class="si-tile" style="display: flex; gap: 11px; padding: 10px 12px">
+            <div style="flex: none; width: 34px; height: 34px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: {{ c.iconBg }}; border: 1px solid {{ c.iconBorder }}">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="{{ c.iconColor }}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.icon }}"></path></svg>
             </div>
             <div>
-              <div style="font-size: 9.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: {{ c.iconColor }}; margin-bottom: 5px">{{ c.kicker }}</div>
-              <div style="font-size: 12.5px; line-height: 1.45; color: #c9d7e6; text-wrap: pretty">{{ c.body }}</div>
+              <div style="font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: {{ c.iconColor }}; margin-bottom: 3px">{{ c.kicker }}</div>
+              <div style="font-size: 11.5px; line-height: 1.4; color: #c9d7e6; text-wrap: pretty">{{ c.body }}</div>
             </div>
           </div>
         </sc-for>
       </div>
 
-      <div style="margin-top: 12px; padding: 13px 16px; border-radius: 10px; background: rgba(236,109,37,.07); border: 1px solid rgba(236,109,37,.28); border-left: 3px solid #ec6d25">
-        <div style="font-size: 9.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #f2955c; margin-bottom: 9px">Where to focus</div>
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 24px">
+      <div style="margin-top: 9px; padding: 10px 13px; border-radius: 10px; background: rgba(236,109,37,.07); border: 1px solid rgba(236,109,37,.28); border-left: 3px solid #ec6d25">
+        <div style="font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #f2955c; margin-bottom: 7px">Where to focus</div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 24px">
           <sc-for list="{{ focusItems }}" as="f" hint-placeholder-count="4">
-            <div style="display: flex; gap: 9px; align-items: baseline; font-size: 12.5px; line-height: 1.45; color: #c9d7e6">
+            <div style="display: flex; gap: 9px; align-items: baseline; font-size: 11.5px; line-height: 1.4; color: #c9d7e6">
               <span style="flex: none; color: #ec6d25; font-weight: 700">&rarr;</span>
               <span style="text-wrap: pretty">{{ f }}</span>
             </div>
@@ -346,7 +346,7 @@
         </div>
       </div>
 
-      <button onClick="{{ toggleFindings }}" style="display: flex; align-items: center; gap: 9px; width: 100%; margin-top: 12px; padding: 9px 14px; font-family: inherit; font-size: 12px; font-weight: 600; color: #f3f7fc; text-align: left; background: rgba(10,31,50,.55); border: 1px solid rgba(28,63,107,.7); border-radius: 10px; cursor: pointer">
+      <button onClick="{{ toggleFindings }}" style="display: flex; align-items: center; gap: 9px; width: 100%; margin-top: 9px; padding: 7px 14px; font-family: inherit; font-size: 12px; font-weight: 600; color: #f3f7fc; text-align: left; background: rgba(10,31,50,.55); border: 1px solid rgba(28,63,107,.7); border-radius: 10px; cursor: pointer">
         <span style="font-size: 9px; color: #ec6d25; transform: {{ findingsCaret }}; display: inline-block">&#9654;</span>
         <span>{{ findingsLabel }}</span>
       </button>
