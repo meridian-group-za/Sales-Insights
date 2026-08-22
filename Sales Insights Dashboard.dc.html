@@ -2961,9 +2961,21 @@ class Component extends DCLogic {
         : Math.max(0, monthsAll.indexOf(S.scopeMonth));
       cur = series[idx];
       prev = series[idx - 1];
-      vsPrev = prev && prev.value ? cur.value / prev.value - 1 : null;
-      periodLabel = this.mon(cur.month, true) + (cur.month === latest && partial ? " MTD" : "");
+      vsPrev = prev && cur && prev.value ? cur.value / prev.value - 1 : null;
+      // cur can be undefined when the current filter combination has no
+      // rows in monthly_trend at all (e.g. a category/brand/region
+      // intersection with zero sales) -- this used to throw and take the
+      // ENTIRE page down with it (every {{ }} binding on the page would
+      // then show as "never resolved"), not just this one widget.
+      periodLabel = cur ? (this.mon(cur.month, true) + (cur.month === latest && partial ? " MTD" : "")) : "No data for this selection";
       prevLabel = prev ? "vs " + this.mon(prev.month) : "no prior month";
+      // Everything below this point in renderVals assumes cur/prev are real
+      // { month, value, units } objects -- rather than null-guard every one
+      // of those dozens of downstream reads, substitute a real zero-value
+      // stand-in here so the rest of the page still renders (as all-zero)
+      // instead of crashing outright when a filter combination has no data.
+      if (!cur) cur = { month: latest, value: 0, units: 0 };
+      if (!prev) prev = { month: null, value: 0, units: 0 };
     }
 
     /* KPI cards */
