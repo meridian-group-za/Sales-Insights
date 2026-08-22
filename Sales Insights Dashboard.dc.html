@@ -2426,7 +2426,7 @@ class Component extends DCLogic {
       // before that page has ever been opened.
       dimension_brand: { rows: [], latest_month: null },
       dimension_banner: { rows: [], latest_month: null }, brand_monthly: [], banner_monthly: [],
-      store_performance: [], product_detail: { rows: [], latest_month: null, network_stores_latest: null },
+      store_performance: [], store_count: null, product_detail: { rows: [], latest_month: null, network_stores_latest: null },
       price_mix: { monthly: [], by_retailer: [] },
       price_volume_bridge: { volume: 0, mix: 0, price: 0, net_change: 0, latest_month: null, prior_month: null },
       client_product_crosstab: { rows: [] }, region_crosstab: { by: "brand", rows: [], latest_month: null },
@@ -2516,7 +2516,7 @@ class Component extends DCLogic {
         ]);
         Object.assign(patch, { product_detail: pd, client_product_crosstab: cpx, category_monthly });
       } else if (page === "stores") {
-        const [sp, hos, gm, rm, mgr] = await Promise.all([
+        const [sp, hos, gm, rm, mgr, sc] = await Promise.all([
           // Raised from 500 -- confirmed 2026-08-22 there are 6,741 distinct
           // trading stores in the real DB, so 500 silently truncated the
           // "Trading stores" count/list. get_store_performance already
@@ -2528,14 +2528,19 @@ class Component extends DCLogic {
           this.apiFetch("hierarchy_levels", { level: "general_manager" }),
           this.apiFetch("hierarchy_levels", { level: "regional_manager" }),
           this.apiFetch("hierarchy_levels", { level: "manager" }),
+          // Store x client pairs (55,738 of them) far exceed the 8000 row
+          // cap above, so "Trading stores" was just displaying that cap
+          // back verbatim (a suspiciously round "8 000") instead of a real
+          // count -- this is a genuine count query, unaffected by the cap.
+          this.apiFetch("store_count", { region: params.region, banner: this.state.banner, zone: params.zone }),
         ]);
-        Object.assign(patch, { store_performance: sp });
+        Object.assign(patch, { store_performance: sp, store_count: sc.stores });
         this.setState({ hosOpts: hos, gmOpts: gm, rmOpts: rm, mgrOpts: mgr });
         await this.loadStoreMatrix();
       } else if (page === "pricemix") {
         const [pm, pvb] = await Promise.all([
           this.apiFetch("price_mix", { client: this.state.client === "all" ? null : this.state.client }),
-          this.apiFetch("price_volume_bridge", { client: this.state.client === "all" ? null : this.state.client }),
+          this.apiFetch("price_volume_bridge", params),
         ]);
         Object.assign(patch, { price_mix: pm, price_volume_bridge: pvb });
       } else {
@@ -3336,7 +3341,7 @@ class Component extends DCLogic {
     });
     const stTopBanner = Object.keys(stBannerAgg).map(k => ({ k, value: stBannerAgg[k].value })).sort((a, z) => z.value - a.value)[0] || {};
     const stTiles = [
-      { label: "Trading stores", value: this.int(d.store_performance.length), note: "in this extract" },
+      { label: "Trading stores", value: this.int(d.store_count != null ? d.store_count : d.store_performance.length), note: "in this extract" },
       { label: "12m value, all stores", value: this.cur(stTotal12), note: "rolling 12 months" },
       { label: "Declining 3+ months", value: this.int(d.store_performance.filter(r => r.consecutive_decline_months >= 3).length), note: "consecutive months down" },
       { label: "Growing YoY", value: this.int(d.store_performance.filter(r => r.growth_yoy > 0).length) + " / " + d.store_performance.length, note: "stores up on last year" },
