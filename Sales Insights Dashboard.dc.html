@@ -5136,7 +5136,9 @@ class Component extends DCLogic {
             ? self.title(S.region) + " holds " + self.bare(row.cur_value / regTotal) + " of rolling 12-month value, " + self.pct(row.value_vs_pct) + " on the prior year."
             : self.title(S.region) + " has no rolling 12-month value recorded.";
         })(this)
-      : this.title(regRows[0].dim) + " and " + this.title(regRows[1].dim) + " contributed " + this.bare((regRows[0].cur_value + regRows[1].cur_value) / regTotal, 0) + " of rolling 12-month value.";
+      : (regRows.length >= 2
+          ? this.title(regRows[0].dim) + " and " + this.title(regRows[1].dim) + " contributed " + this.bare((regRows[0].cur_value + regRows[1].cur_value) / regTotal, 0) + " of rolling 12-month value."
+          : (regRows.length === 1 ? this.title(regRows[0].dim) + " holds " + this.bare(regRows[0].cur_value / regTotal, 0) + " of rolling 12-month value." : "No region data recorded for this selection."));
     const regionDir = S.region !== "all" ? ((regRows.find(r => r.dim === S.region) || {}).value_vs_pct || 0) : 0;
 
     const concentration = S.category !== "all"
