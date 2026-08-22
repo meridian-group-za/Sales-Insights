@@ -2199,9 +2199,20 @@ const siAuthReady = new Promise((resolve) => { siResolveAuthReady = resolve; });
 // with no way out. Confirmed live 2026-08-22.
 let siFailsafeFired = false;
 setTimeout(() => {
-  if (document.getElementById("siAuthOverlay") && document.getElementById("siAuthOverlay").style.display !== "none") {
-    siFailsafeFired = true;
-    console.error("si-auth: timed out waiting for sign-in check -- returning to login page");
+  const overlay = document.getElementById("siAuthOverlay");
+  if (!overlay || overlay.style.display === "none") return;
+  siFailsafeFired = true;
+  // Only send to login if there's genuinely no cached account -- if the
+  // MSAL client exists and already has a session, this timeout means the
+  // API/network is just slow, not that the user is signed out, so reveal
+  // the dashboard rather than bouncing a real, signed-in user back to
+  // login (which just forces a pointless re-login).
+  if (siMsalInstance && siMsalInstance.getAllAccounts().length > 0) {
+    console.error("si-auth: sign-in check took too long but a session exists -- loading anyway");
+    siSetAuthMessage("Loading your dashboard...");
+    siRevealDashboard();
+  } else {
+    console.error("si-auth: timed out waiting for sign-in check with no cached session -- returning to login page");
     window.location.replace("https://meridian-group-za.github.io/Sales-Insights/");
   }
 }, 8000);
