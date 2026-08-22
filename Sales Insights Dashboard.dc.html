@@ -85,23 +85,12 @@
      harmless, but if that bothers you it's safe to add
      `display: {{ isLocalDev() ? 'none' : 'flex' }}` here once the DC
      compiler's context makes that expression reachable from plain HTML). -->
-<div id="siAuthOverlay" style="position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: radial-gradient(1100px 700px at 14% -8%, rgba(91,155,213,.10), transparent 60%), radial-gradient(900px 640px at 96% 6%, rgba(236,109,37,.07), transparent 55%), #081b34; font-family: 'Poppins', system-ui, sans-serif">
-  <div style="width: 360px; max-width: 88vw; background: linear-gradient(165deg, rgba(24,66,114,.36), rgba(14,42,76,.30)); border: 1px solid rgba(38,78,124,.75); border-radius: 13px; box-shadow: 0 12px 28px -18px rgba(0,0,0,.55); padding: 36px 32px 30px; text-align: center">
-    <img src="assets/meridian-mark.png" alt="Meridian" style="width: 44px; height: 44px; object-fit: contain; margin-bottom: 12px">
-    <div style="font-size: 17px; font-weight: 700; color: #f3f7fc">Meridian Nexus</div>
-    <div style="font-size: 9.5px; font-weight: 700; letter-spacing: .16em; color: #ec6d25; margin-top: 2px">SALES INSIGHTS</div>
-    <div style="height: 1px; background: rgba(38,78,124,.6); margin: 20px 0"></div>
-    <button id="signInBtn" style="width: 100%; height: 42px; background: #fff; color: #3c4043; border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px">
-      <svg width="16" height="16" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
-      Sign in with Microsoft
-    </button>
-    <div id="siAuthLoadingBox" class="auth-loading-box" aria-live="polite">
-      <div class="auth-spinner" aria-hidden="true"></div>
-      <div id="siAuthLoadingTitle" class="auth-loading-title">Preparing your dashboard</div>
-      <div id="siAuthLoadingSub" class="auth-loading-sub">Please wait while Nexus loads your data.</div>
-    </div>
+<div id="siAuthOverlay" style="position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: #081b34; font-family: 'Poppins', system-ui, sans-serif">
+  <div style="text-align: center">
+    <img src="assets/meridian-mark.png" alt="Meridian" style="width: 40px; height: 40px; object-fit: contain; margin-bottom: 16px; opacity: .9">
+    <div class="auth-spinner" aria-hidden="true" style="margin: 0 auto"></div>
+    <div id="siAuthLoadingTitle" style="margin-top: 16px; font-size: 12.5px; color: #9dc4ec">Loading your dashboard...</div>
     <div id="siAuthError" style="font-size: 12px; color: #D94F3A; margin-top: 10px; min-height: 16px"></div>
-    <div style="margin-top: 18px; font-size: 10.5px; color: #4A6B8A; line-height: 1.5">Access is limited to Meridian Group accounts.</div>
   </div>
 </div>
 
@@ -150,7 +139,7 @@
         </sc-if>
         <span style="font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; padding: 5px 13px; border-radius: 999px; color: #f2955c; border: 1px solid rgba(236,109,37,.65)">Live data</span>
         <span style="font-size: 11.5px; color: #8DA2B5">{{ metaLine }}</span>
-        <a href="#" style="font-size: 11.5px; font-weight: 500; color: #3B82F6; text-decoration: none; white-space: nowrap">Sign out</a>
+        <a href="#" id="siSignOutLink" style="font-size: 11.5px; font-weight: 500; color: #3B82F6; text-decoration: none; white-space: nowrap">Sign out</a>
       </div>
     </header>
 
@@ -2211,27 +2200,32 @@ const siMsalInstance = siIsLocalDev() ? null : new msal.PublicClientApplication(
 let siResolveAuthReady;
 const siAuthReady = new Promise((resolve) => { siResolveAuthReady = resolve; });
 
-function siSetAuthLoading(title, subtitle) {
-  const box = document.getElementById("siAuthLoadingBox");
+// This page never shows its own sign-in UI. If there's no session, bounce
+// straight to the login page (index.html), which owns the actual
+// custom-designed sign-in screen and the loginRedirect() call. This file
+// only ever needs to confirm a session already exists.
+const SI_LOGIN_URL = "https://meridian-group-za.github.io/Sales-Insights/";
+
+function siSetAuthMessage(text) {
   const titleEl = document.getElementById("siAuthLoadingTitle");
-  const subEl = document.getElementById("siAuthLoadingSub");
-  const btn = document.getElementById("signInBtn");
-  if (titleEl && title) titleEl.textContent = title;
-  if (subEl && subtitle) subEl.textContent = subtitle;
-  if (box) box.classList.add("active");
-  if (btn) btn.style.display = "none";
-}
-function siClearAuthLoading() {
-  const box = document.getElementById("siAuthLoadingBox");
-  const btn = document.getElementById("signInBtn");
-  if (box) box.classList.remove("active");
-  if (btn) btn.style.display = "block";
+  if (titleEl && text) titleEl.textContent = text;
 }
 function siRevealDashboard() {
   const overlay = document.getElementById("siAuthOverlay");
   if (overlay) overlay.style.display = "none";
   siResolveAuthReady();
 }
+function siGoToLogin() {
+  window.location.replace(SI_LOGIN_URL);
+}
+
+document.addEventListener("click", (e) => {
+  const link = e.target.closest && e.target.closest("#siSignOutLink");
+  if (!link) return;
+  e.preventDefault();
+  if (siIsLocalDev() || !siMsalInstance) { window.location.replace(SI_LOGIN_URL); return; }
+  siMsalInstance.logoutRedirect({ postLogoutRedirectUri: SI_LOGIN_URL });
+});
 
 if (siIsLocalDev()) {
   siResolveAuthReady();
@@ -2239,37 +2233,15 @@ if (siIsLocalDev()) {
   if (siOverlayEl) siOverlayEl.style.display = "none";
 } else {
   siMsalInstance.handleRedirectPromise().then((result) => {
-    if (result) {
-      siSetAuthLoading("Preparing your dashboard", "Sign-in complete. Please wait while Nexus loads your data.");
+    if (result || siMsalInstance.getAllAccounts().length > 0) {
+      siSetAuthMessage("Loading your dashboard...");
       siRevealDashboard();
-    } else if (siMsalInstance.getAllAccounts().length > 0) {
-      siSetAuthLoading("Preparing your dashboard", "Please wait while Nexus reconnects to your session.");
-      siRevealDashboard();
+    } else {
+      siGoToLogin();
     }
   }).catch((e) => {
     console.error("handleRedirectPromise error:", e);
-    const errEl = document.getElementById("siAuthError");
-    if (errEl) errEl.textContent = "Sign-in failed. Please try again.";
-    siClearAuthLoading();
-  });
-
-  // Delegated on `document` (not bound directly to #signInBtn): this script
-  // runs as part of the DC framework's boot sequence, well before the
-  // button node it targets is guaranteed to exist -- a direct
-  // getElementById+addEventListener here would silently never fire.
-  document.addEventListener("click", async (e) => {
-    const btn = e.target.closest && e.target.closest("#signInBtn");
-    if (!btn) return;
-    const errEl = document.getElementById("siAuthError");
-    if (errEl) errEl.textContent = "";
-    siSetAuthLoading("Signing in", "Redirecting to Microsoft sign-in...");
-    try {
-      await siMsalInstance.loginRedirect({ scopes: [SI_API_SCOPE] });
-    } catch (err) {
-      console.error("loginRedirect error:", err);
-      if (errEl) errEl.textContent = "Sign-in failed. Please try again.";
-      siClearAuthLoading();
-    }
+    siGoToLogin();
   });
 }
 
@@ -2847,7 +2819,7 @@ class Component extends DCLogic {
 
     const latest = d.meta.latest_month;
     const prevMonth = d.monthly_trend[d.monthly_trend.length - 2];
-    const partial = d.summary.sales_value < 0.7 * prevMonth.sales_value;
+    const partial = !!(prevMonth && d.summary && d.summary.sales_value < 0.7 * prevMonth.sales_value);
     const monthsAll = d.monthly_trend.map(m => m.month);
 
     /* filter options */
