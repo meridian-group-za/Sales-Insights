@@ -2188,17 +2188,37 @@ function siIsLocalDev() {
   return ["localhost", "127.0.0.1"].includes(window.location.hostname);
 }
 
-const siMsalInstance = siIsLocalDev() ? null : new msal.PublicClientApplication({
-  auth: {
-    clientId: SI_MSAL_CONFIG.clientId,
-    authority: `https://login.microsoftonline.com/${SI_MSAL_CONFIG.tenantId}`,
-    redirectUri: SI_MSAL_CONFIG.redirectUri,
-  },
-  cache: { cacheLocation: "localStorage" },
-});
-
 let siResolveAuthReady;
 const siAuthReady = new Promise((resolve) => { siResolveAuthReady = resolve; });
+
+// Unconditional failsafe -- registered before anything below that could
+// throw. If the msal-browser CDN script hasn't finished loading yet,
+// `new msal.PublicClientApplication(...)` throws a ReferenceError that
+// would otherwise silently kill this entire script block (including the
+// redirect/reveal logic further down), leaving the spinner stuck forever
+// with no way out. Confirmed live 2026-08-22.
+let siFailsafeFired = false;
+setTimeout(() => {
+  if (document.getElementById("siAuthOverlay") && document.getElementById("siAuthOverlay").style.display !== "none") {
+    siFailsafeFired = true;
+    console.error("si-auth: timed out waiting for sign-in check -- returning to login page");
+    window.location.replace("https://meridian-group-za.github.io/Sales-Insights/");
+  }
+}, 8000);
+
+let siMsalInstance = null;
+try {
+  siMsalInstance = siIsLocalDev() ? null : new msal.PublicClientApplication({
+    auth: {
+      clientId: SI_MSAL_CONFIG.clientId,
+      authority: `https://login.microsoftonline.com/${SI_MSAL_CONFIG.tenantId}`,
+      redirectUri: SI_MSAL_CONFIG.redirectUri,
+    },
+    cache: { cacheLocation: "localStorage" },
+  });
+} catch (e) {
+  console.error("si-auth: failed to construct MSAL client:", e);
+}
 
 // This page never shows its own sign-in UI. If there's no session, bounce
 // straight to the login page (index.html), which owns the actual
@@ -2231,6 +2251,8 @@ if (siIsLocalDev()) {
   siResolveAuthReady();
   const siOverlayEl = document.getElementById("siAuthOverlay");
   if (siOverlayEl) siOverlayEl.style.display = "none";
+} else if (!siMsalInstance) {
+  siGoToLogin();
 } else {
   siMsalInstance.handleRedirectPromise().then((result) => {
     if (result || siMsalInstance.getAllAccounts().length > 0) {
