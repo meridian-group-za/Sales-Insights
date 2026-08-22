@@ -69,23 +69,6 @@
 </style>
 </helmet>
 
-<sc-if value="{{ needsSignIn }}">
-  <div style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: radial-gradient(1100px 700px at 14% -8%, rgba(91,155,213,.10), transparent 60%), radial-gradient(900px 640px at 96% 6%, rgba(236,109,37,.07), transparent 55%), #081b34">
-    <div class="si-panel" style="width: 340px; padding: 34px 30px; text-align: center">
-      <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 22px">
-        <img src="assets/meridian-mark.png" alt="" style="width: 34px; height: 34px; object-fit: contain">
-        <div style="text-align: left">
-          <div style="font-size: 15px; font-weight: 700; color: #f3f7fc; line-height: 1.1">Meridian Nexus</div>
-          <div style="font-size: 9.5px; font-weight: 700; letter-spacing: .16em; color: #ec6d25">SALES INSIGHTS</div>
-        </div>
-      </div>
-      <div style="font-size: 13px; color: #8DA2B5; margin-bottom: 22px">Sign in with your Meridian account to view live sales data.</div>
-      <button class="si-btn" style="width: 100%; height: 40px; font-size: 12.5px" onClick="{{ signIn }}">Sign in with Microsoft</button>
-      <sc-if value="{{ signInError }}"><div style="margin-top: 14px; font-size: 11px; color: #D94F3A">{{ signInError }}</div></sc-if>
-    </div>
-  </div>
-</sc-if>
-
 <div style="display: flex; min-height: 100vh; background: #081b34">
   <aside style="width: 256px; flex: none; position: sticky; top: 0; align-self: flex-start; height: 100vh; display: flex; background: rgba(8,22,44,.88); backdrop-filter: blur(16px); border-right: 1px solid rgba(28,63,107,.92); box-shadow: 14px 0 36px rgba(0,0,0,.18)">
     <div style="width: 5px; flex-shrink: 0; background: linear-gradient(180deg, #F58220 0%, #e06010 100%)"></div>
