@@ -2491,7 +2491,8 @@ class Component extends DCLogic {
           this.apiFetch("province_monthly", { client: this.state.client === "all" ? null : this.state.client,
             category: this.state.category === "all" ? null : this.state.category,
             brand: this.state.brand === "all" ? null : this.state.brand,
-            zone: this.state.zone === "all" ? null : this.state.zone }),
+            zone: this.state.zone === "all" ? null : this.state.zone,
+            product: this.state.product === "all" ? null : this.state.product }),
         ]);
         Object.assign(patch, { dimension_region: dr, dimension_banner: db, region_crosstab, province_monthly });
       } else if (page === "brands" || page === "channels") {
