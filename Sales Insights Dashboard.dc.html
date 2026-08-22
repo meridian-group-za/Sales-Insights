@@ -1976,67 +1976,6 @@
         </section>
 
         <section class="si-panel" style="padding: 15px 16px 14px; margin-top: 10px">
-          <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
-            <h3 style="font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 15.5px; color: #f3f7fc; margin: 0">Store &times; client &times; product &times; region matrix</h3>
-            <span style="font-size: 10.5px; color: #4A6B8A">Every filter below is optional and combinable — pick any subset</span>
-          </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px">
-            <input type="text" list="si-mx-stores" placeholder="All stores (type to search)" value="{{ mxStoreQ }}" onChange="{{ setMxStoreQ }}" class="si-ctl" style="flex: 0 0 220px">
-            <datalist id="si-mx-stores">
-              <sc-for list="{{ mxStoreOpts }}" as="o" hint-placeholder-count="10"><option value="{{ o.label }}"></option></sc-for>
-            </datalist>
-            <select class="si-ctl" value="{{ mxClient }}" onChange="{{ setMxClient }}" style="flex: 0 0 160px">
-              <sc-for list="{{ mxClientOpts }}" as="o" hint-placeholder-count="10"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-            </select>
-            <select class="si-ctl" value="{{ mxProduct }}" onChange="{{ setMxProduct }}" style="flex: 0 0 190px">
-              <sc-for list="{{ mxProductOpts }}" as="o" hint-placeholder-count="10"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-            </select>
-            <select class="si-ctl" value="{{ mxRegion }}" onChange="{{ setMxRegion }}" style="flex: 0 0 150px">
-              <sc-for list="{{ mxRegionOpts }}" as="o" hint-placeholder-count="10"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-            </select>
-            <select class="si-ctl" value="{{ mxHos }}" onChange="{{ setMxHos }}" style="flex: 0 0 170px">
-              <sc-for list="{{ hosOpts }}" as="o" hint-placeholder-count="6"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-            </select>
-            <select class="si-ctl" value="{{ mxGm }}" onChange="{{ setMxGm }}" style="flex: 0 0 170px">
-              <sc-for list="{{ gmOpts }}" as="o" hint-placeholder-count="6"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-            </select>
-            <select class="si-ctl" value="{{ mxRm }}" onChange="{{ setMxRm }}" style="flex: 0 0 170px">
-              <sc-for list="{{ rmOpts }}" as="o" hint-placeholder-count="6"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-            </select>
-            <select class="si-ctl" value="{{ mxMgr }}" onChange="{{ setMxMgr }}" style="flex: 0 0 170px">
-              <sc-for list="{{ mgrOpts }}" as="o" hint-placeholder-count="6"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-            </select>
-          </div>
-          <div style="margin-top: 8px; font-size: 10.5px; color: #4A6B8A">
-            <sc-if cond="{{ mxLoading }}"><span>Loading combination…</span></sc-if>
-            <sc-if cond="{{ !mxLoading }}"><span>{{ mxCount }}</span></sc-if>
-          </div>
-          <div style="overflow-x: auto; margin-top: 8px">
-            <table style="width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums">
-              <thead><tr style="font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; color: #4A6B8A; text-align: left">
-                <th style="padding: 6px 8px">Store</th><th style="padding: 6px 8px">Client</th>
-                <th style="padding: 6px 8px">Product</th><th style="padding: 6px 8px">Region</th>
-                <th style="padding: 6px 8px; text-align: right">12m value</th><th style="padding: 6px 8px; text-align: right">12m units</th>
-                <th style="padding: 6px 8px; text-align: right">vs prior</th>
-              </tr></thead>
-              <tbody>
-                <sc-for list="{{ mxRows }}" as="r" hint-placeholder-count="8">
-                  <tr style="border-top: 1px solid rgba(28,63,107,.35); font-size: 12px">
-                    <td style="padding: 6px 8px; color: #f3f7fc">{{ r.store }}</td>
-                    <td style="padding: 6px 8px; color: #8DA2B5">{{ r.client }}</td>
-                    <td style="padding: 6px 8px; color: #8DA2B5">{{ r.product }}</td>
-                    <td style="padding: 6px 8px; color: #8DA2B5">{{ r.region }}</td>
-                    <td style="padding: 6px 8px; text-align: right; color: #f3f7fc">{{ r.val12 }}</td>
-                    <td style="padding: 6px 8px; text-align: right; color: #8DA2B5">{{ r.vol12 }}</td>
-                    <td style="padding: 6px 8px; text-align: right; color: {{ r.val12VsColor }}">{{ r.val12Vs }}</td>
-                  </tr>
-                </sc-for>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="si-panel" style="padding: 15px 16px 14px; margin-top: 10px">
           <div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap">
             <h3 style="font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 15.5px; color: #f3f7fc; margin: 0">Store league table</h3>
             <input type="text" list="si-st-banners" placeholder="Search store or banner…" value="{{ stQ }}" onChange="{{ setStQ }}" class="si-ctl" style="flex: 0 0 220px; margin-left: 8px">
@@ -2537,7 +2476,10 @@ class Component extends DCLogic {
         ]);
         Object.assign(patch, { store_performance: sp, store_count: sc.stores });
         this.setState({ hosOpts: hos, gmOpts: gm, rmOpts: rm, mgrOpts: mgr });
-        await this.loadStoreMatrix();
+        // Store x client x product x region matrix widget removed
+        // 2026-08-22 (Carin: "take this out it doesn't work") -- no longer
+        // calling loadStoreMatrix() here, so this page no longer triggers
+        // that live full-table-scan at all.
       } else if (page === "pricemix") {
         const [pm, pvb] = await Promise.all([
           this.apiFetch("price_mix", { client: this.state.client === "all" ? null : this.state.client }),
