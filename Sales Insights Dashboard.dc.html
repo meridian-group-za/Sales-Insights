@@ -2991,30 +2991,24 @@ class Component extends DCLogic {
     const brandMulti = multiSnapshot("brand", brandOpts, "All brands");
 
     /* scoped series */
+    // series comes straight from d.monthly_trend, which is already fetched
+    // WITH the full filter set (client/category/region/brand/zone/product)
+    // applied server-side (get_monthly_trend, fixed to a live sales_fact
+    // scan for exactly this reason). This used to re-derive series
+    // client-side by filtering category_monthly/client_monthly/
+    // province_monthly on an EXACT raw-text match (r.category === S.category)
+    // -- broken two ways, confirmed 2026-08-22: (1) raw category/client/
+    // region text has inconsistent casing ("Feminine Hygiene" vs "FEMININE
+    // HYGIENE"), so months where only the differently-cased variant existed
+    // silently zeroed out even though the real data was right there in
+    // monthly_trend; (2) S.category/S.client/S.region can now be a
+    // comma-joined multi-select list, which an exact `===` never matches at
+    // all. Removed entirely rather than patched -- monthly_trend already
+    // handles all of this correctly and combined (e.g. category + region
+    // together), which this client-side version never could anyway.
     let series = d.monthly_trend.map(m => ({ month: m.month, value: m.sales_value, units: m.sales_units }));
     let scopeLabel = "All clients";
     const notes = [];
-    if (S.client !== "all") {
-      const by = new Map(d.client_monthly.filter(r => r.client === S.client).map(r => [r.month, r]));
-      series = monthsAll.map(m => ({ month: m, value: by.has(m) ? by.get(m).sales_value : 0, units: by.has(m) ? by.get(m).sales_units : 0 }));
-      scopeLabel = this.title(S.client);
-    }
-    if (S.category !== "all") {
-      const by = new Map(d.category_monthly.filter(r => r.category === S.category).map(r => [r.month, r]));
-      series = monthsAll.map(m => ({ month: m, value: by.has(m) ? by.get(m).sales_value : 0, units: by.has(m) ? by.get(m).sales_units : 0 }));
-      scopeLabel = this.title(S.category);
-    } else if (S.region !== "all") {
-      const by = new Map(d.province_monthly.filter(r => r.province === S.region).map(r => [r.month, r]));
-      series = monthsAll.map(m => ({ month: m, value: by.has(m) ? by.get(m).sales_value : 0, units: by.has(m) ? by.get(m).sales_units : 0 }));
-      scopeLabel = this.title(S.region);
-    }
-    /* the extract carries one monthly split per dimension, so slices can't be intersected */
-    const monthlyPicks = [
-      S.client !== "all" ? "client" : null,
-      S.category !== "all" ? "category" : null,
-      S.region !== "all" ? "region" : null
-    ].filter(Boolean);
-    if (monthlyPicks.length > 1) notes.push("Monthly figures follow the " + (S.category !== "all" ? "category" : "region") + " slice only — this extract has no combined " + monthlyPicks.join(" × ") + " split.");
     scopeLabel = [
       S.client !== "all" ? clientMenuLabel : null,
       S.category !== "all" ? categoryMulti.menuLabel : null,
