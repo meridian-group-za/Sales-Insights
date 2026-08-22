@@ -66,8 +66,44 @@
   ::-webkit-scrollbar { height: 9px; width: 9px; }
   ::-webkit-scrollbar-thumb { background: #24507c; border-radius: 9px; }
   ::-webkit-scrollbar-thumb:hover { background: #2f628f; }
+  .auth-spinner { width: 36px; height: 36px; margin: 0 auto 10px; border-radius: 50%; border: 3px solid rgba(236,109,37,.22); border-top-color: #ec6d25; animation: authSpin .8s linear infinite; }
+  .auth-loading-box { display: none; margin-top: 16px; text-align: center; }
+  .auth-loading-box.active { display: block; }
+  .auth-loading-title { font-size: 13px; color: #ec6d25; font-weight: 700; margin-bottom: 4px; }
+  .auth-loading-sub { font-size: 11px; color: #8DA2B5; font-weight: 500; line-height: 1.4; }
+  @keyframes authSpin { to { transform: rotate(360deg); } }
 </style>
 </helmet>
+
+<!-- Sign-in overlay: plain DOM (not a DC-templated component), same pattern
+     as the Inventory Dashboard's proven MSAL flow -- js hides this via
+     siRevealDashboard() once handleRedirectPromise()/getAllAccounts() confirms
+     a signed-in session. isLocalDev() never shows it at all (display:none
+     inline below is overridden by nothing in local dev since siAuthReady
+     resolves immediately and this element is simply left in the DOM,
+     invisible behind the real dashboard which mounts underneath it --
+     harmless, but if that bothers you it's safe to add
+     `display: {{ isLocalDev() ? 'none' : 'flex' }}` here once the DC
+     compiler's context makes that expression reachable from plain HTML). -->
+<div id="siAuthOverlay" style="position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: radial-gradient(1100px 700px at 14% -8%, rgba(91,155,213,.10), transparent 60%), radial-gradient(900px 640px at 96% 6%, rgba(236,109,37,.07), transparent 55%), #081b34; font-family: 'Poppins', system-ui, sans-serif">
+  <div style="width: 360px; max-width: 88vw; background: linear-gradient(165deg, rgba(24,66,114,.36), rgba(14,42,76,.30)); border: 1px solid rgba(38,78,124,.75); border-radius: 13px; box-shadow: 0 12px 28px -18px rgba(0,0,0,.55); padding: 36px 32px 30px; text-align: center">
+    <img src="assets/meridian-mark.png" alt="Meridian" style="width: 44px; height: 44px; object-fit: contain; margin-bottom: 12px">
+    <div style="font-size: 17px; font-weight: 700; color: #f3f7fc">Meridian Nexus</div>
+    <div style="font-size: 9.5px; font-weight: 700; letter-spacing: .16em; color: #ec6d25; margin-top: 2px">SALES INSIGHTS</div>
+    <div style="height: 1px; background: rgba(38,78,124,.6); margin: 20px 0"></div>
+    <button id="signInBtn" style="width: 100%; height: 42px; background: #fff; color: #3c4043; border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px">
+      <svg width="16" height="16" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      Sign in with Microsoft
+    </button>
+    <div id="siAuthLoadingBox" class="auth-loading-box" aria-live="polite">
+      <div class="auth-spinner" aria-hidden="true"></div>
+      <div id="siAuthLoadingTitle" class="auth-loading-title">Preparing your dashboard</div>
+      <div id="siAuthLoadingSub" class="auth-loading-sub">Please wait while Nexus loads your data.</div>
+    </div>
+    <div id="siAuthError" style="font-size: 12px; color: #D94F3A; margin-top: 10px; min-height: 16px"></div>
+    <div style="margin-top: 18px; font-size: 10.5px; color: #4A6B8A; line-height: 1.5">Access is limited to Meridian Group accounts.</div>
+  </div>
+</div>
 
 <div style="display: flex; min-height: 100vh; background: #081b34">
   <aside style="width: 256px; flex: none; position: sticky; top: 0; align-self: flex-start; height: 100vh; display: flex; background: rgba(8,22,44,.88); backdrop-filter: blur(16px); border-right: 1px solid rgba(28,63,107,.92); box-shadow: 14px 0 36px rgba(0,0,0,.18)">
@@ -2137,6 +2173,113 @@
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;defaultMeasure&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Value&quot;,&quot;Units&quot;],&quot;default&quot;:&quot;Value&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;includePartialMonth&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;tableRows&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:20,&quot;min&quot;:10,&quot;max&quot;:100,&quot;step&quot;:10,&quot;tsType&quot;:&quot;number&quot;}}">
+// =========================================================================
+// MSAL sign-in -- ported from the Inventory Dashboard's proven, working
+// flow (Meridian Nexus.dc.html), same tenant/app registration/API scope
+// since both dashboards call the same backend Function App, just a
+// different route/key. loginRedirect (not loginPopup) because popups
+// auto-triggered without a user gesture get blocked by browsers -- this
+// only ever fires from a real click on #signInBtn below. Skipped entirely
+// on localhost/127.0.0.1 (isLocalDev), same convention as the rest of this
+// file's API layer.
+// =========================================================================
+const SI_MSAL_CONFIG = {
+  clientId: "2e19d14d-6914-4f52-8bbb-119481314eef",
+  tenantId: "cbe83df2-b350-4dab-8d5f-f78d21fe7d27",
+  redirectUri: window.location.origin + window.location.pathname,
+};
+const SI_API_SCOPE = "api://878107a0-1dfb-4697-a7a1-615e47e9f67b/access_as_user";
+
+function siIsLocalDev() {
+  return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+}
+
+const siMsalInstance = siIsLocalDev() ? null : new msal.PublicClientApplication({
+  auth: {
+    clientId: SI_MSAL_CONFIG.clientId,
+    authority: `https://login.microsoftonline.com/${SI_MSAL_CONFIG.tenantId}`,
+    redirectUri: SI_MSAL_CONFIG.redirectUri,
+  },
+  cache: { cacheLocation: "sessionStorage" },
+});
+
+let siResolveAuthReady;
+const siAuthReady = new Promise((resolve) => { siResolveAuthReady = resolve; });
+
+function siSetAuthLoading(title, subtitle) {
+  const box = document.getElementById("siAuthLoadingBox");
+  const titleEl = document.getElementById("siAuthLoadingTitle");
+  const subEl = document.getElementById("siAuthLoadingSub");
+  const btn = document.getElementById("signInBtn");
+  if (titleEl && title) titleEl.textContent = title;
+  if (subEl && subtitle) subEl.textContent = subtitle;
+  if (box) box.classList.add("active");
+  if (btn) btn.style.display = "none";
+}
+function siClearAuthLoading() {
+  const box = document.getElementById("siAuthLoadingBox");
+  const btn = document.getElementById("signInBtn");
+  if (box) box.classList.remove("active");
+  if (btn) btn.style.display = "block";
+}
+function siRevealDashboard() {
+  const overlay = document.getElementById("siAuthOverlay");
+  if (overlay) overlay.style.display = "none";
+  siResolveAuthReady();
+}
+
+if (siIsLocalDev()) {
+  siResolveAuthReady();
+  const siOverlayEl = document.getElementById("siAuthOverlay");
+  if (siOverlayEl) siOverlayEl.style.display = "none";
+} else {
+  siMsalInstance.handleRedirectPromise().then((result) => {
+    if (result) {
+      siSetAuthLoading("Preparing your dashboard", "Sign-in complete. Please wait while Nexus loads your data.");
+      siRevealDashboard();
+    } else if (siMsalInstance.getAllAccounts().length > 0) {
+      siSetAuthLoading("Preparing your dashboard", "Please wait while Nexus reconnects to your session.");
+      siRevealDashboard();
+    }
+  }).catch((e) => {
+    console.error("handleRedirectPromise error:", e);
+    const errEl = document.getElementById("siAuthError");
+    if (errEl) errEl.textContent = "Sign-in failed. Please try again.";
+    siClearAuthLoading();
+  });
+
+  // Delegated on `document` (not bound directly to #signInBtn): this script
+  // runs as part of the DC framework's boot sequence, well before the
+  // button node it targets is guaranteed to exist -- a direct
+  // getElementById+addEventListener here would silently never fire.
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest && e.target.closest("#signInBtn");
+    if (!btn) return;
+    const errEl = document.getElementById("siAuthError");
+    if (errEl) errEl.textContent = "";
+    siSetAuthLoading("Signing in", "Redirecting to Microsoft sign-in...");
+    try {
+      await siMsalInstance.loginRedirect({ scopes: [SI_API_SCOPE] });
+    } catch (err) {
+      console.error("loginRedirect error:", err);
+      if (errEl) errEl.textContent = "Sign-in failed. Please try again.";
+      siClearAuthLoading();
+    }
+  });
+}
+
+async function siGetApiToken() {
+  const accounts = siMsalInstance.getAllAccounts();
+  if (accounts.length === 0) throw new Error("Not signed in");
+  try {
+    const result = await siMsalInstance.acquireTokenSilent({ scopes: [SI_API_SCOPE], account: accounts[0] });
+    return result.accessToken;
+  } catch (e) {
+    await siMsalInstance.acquireTokenRedirect({ scopes: [SI_API_SCOPE], account: accounts[0] });
+    return null; // page will redirect -- never reaches here
+  }
+}
+
 class Component extends DCLogic {
   mapRef = React.createRef();
 
@@ -2183,12 +2326,6 @@ class Component extends DCLogic {
   // production, requests carry a bearer token acquired via MSAL against the
   // same clientId/tenantId/scope already registered for this app.
   // ===========================================================================
-  static MSAL_CONFIG = {
-    clientId: "2e19d14d-6914-4f52-8bbb-119481314eef",
-    tenantId: "cbe83df2-b350-4dab-8d5f-f78d21fe7d27",
-    redirectUri: "https://meridian-group-za.github.io/Sales-Insights/",
-  };
-  static API_SCOPE = "api://878107a0-1dfb-4697-a7a1-615e47e9f67b/access_as_user";
   static PROD_API_BASE = "https://stockfix-validate-fdhkefdwc6dmejda.northeurope-01.azurewebsites.net/api/sales-data/";
   static LOCAL_API_BASE = "http://127.0.0.1:8792/api/";
   // sales_data() is auth_level=FUNCTION (function_app.py) so every prod
@@ -2202,38 +2339,7 @@ class Component extends DCLogic {
   static PROD_API_KEY = "B92Q5UkjoKI2nwp0AhksQbUryCLsxTktB-1fwtEBVUfCAzFuPty3Ig==";
 
   isLocalDev() {
-    return ["localhost", "127.0.0.1"].includes(window.location.hostname);
-  }
-
-  _ensureMsal() {
-    if (this._msal || this.isLocalDev()) return this._msal;
-    if (typeof msal === "undefined") return null;
-    this._msal = new msal.PublicClientApplication({
-      auth: {
-        clientId: Component.MSAL_CONFIG.clientId,
-        authority: `https://login.microsoftonline.com/${Component.MSAL_CONFIG.tenantId}`,
-        redirectUri: Component.MSAL_CONFIG.redirectUri,
-      },
-      cache: { cacheLocation: "sessionStorage" },
-    });
-    return this._msal;
-  }
-
-  async _getApiToken() {
-    const inst = this._ensureMsal();
-    if (!inst) throw new Error("MSAL not available");
-    const accounts = inst.getAllAccounts();
-    if (accounts.length === 0) {
-      const result = await inst.loginPopup({ scopes: [Component.API_SCOPE] });
-      return result.accessToken;
-    }
-    try {
-      const result = await inst.acquireTokenSilent({ scopes: [Component.API_SCOPE], account: accounts[0] });
-      return result.accessToken;
-    } catch (e) {
-      const result = await inst.acquireTokenPopup({ scopes: [Component.API_SCOPE], account: accounts[0] });
-      return result.accessToken;
-    }
+    return siIsLocalDev();
   }
 
   // Fetches one live route (e.g. "summary", "dimension_breakdown") with an
@@ -2251,7 +2357,7 @@ class Component extends DCLogic {
       if (!res.ok) throw new Error(`local api ${res.status} on ${route}`);
       return res.json();
     }
-    const token = await this._getApiToken();
+    const token = await siGetApiToken();
     const res = await fetch(Component.PROD_API_BASE + route + qs + (qs ? "&" : "?") + "code=" + Component.PROD_API_KEY, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -2493,6 +2599,16 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
+    // The overlay div is plain static markup rendered by the DC template,
+    // not mounted until AFTER this component's script block has already
+    // run -- an earlier attempt to hide it from that top-level script (at
+    // module-evaluation time, before mount) silently no-op'd because
+    // getElementById found nothing yet. componentDidMount is guaranteed to
+    // fire after mount, so this is the reliable place.
+    if (this.isLocalDev()) {
+      const overlayEl = document.getElementById("siAuthOverlay");
+      if (overlayEl) overlayEl.style.display = "none";
+    }
     this._onMsg = (e) => {
       if (!e.data) return;
       if (e.data.type === "province-map-ready") this.postMap();
@@ -2504,6 +2620,7 @@ class Component extends DCLogic {
     window.addEventListener("message", this._onMsg);
     (async () => {
       try {
+        await siAuthReady; // resolves immediately in local dev; waits for a real sign-in in production
         const d = await this.loadCore();
         this.setState({
           d,
