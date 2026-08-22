@@ -75,18 +75,33 @@
 </style>
 </helmet>
 
-<!-- Auth gate: plain DOM (not a DC-templated component). Carin's own
-     Login-standalone.html (now this repo's index.html) is the real sign-in
-     screen -- it owns the "Sign in with Microsoft" button and the initial
-     loginRedirect(). This dashboard only needs to confirm a session exists
-     on load; if it doesn't (direct link, expired session, etc.) it bounces
-     back to the login page rather than showing its own sign-in UI, so
-     there's exactly one place that button lives. isLocalDev() skips all of
-     this (see componentDidMount) and this overlay is simply left hidden. -->
-<div id="siAuthOverlay" style="position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: #081b34; font-family: 'Poppins', system-ui, sans-serif">
-  <div style="text-align: center">
-    <div class="auth-spinner" aria-hidden="true" style="margin: 0 auto 14px"></div>
-    <div style="font-size: 13px; color: #ec6d25; font-weight: 700">Checking your session…</div>
+<!-- Sign-in overlay: plain DOM (not a DC-templated component), same pattern
+     as the Inventory Dashboard's proven MSAL flow -- js hides this via
+     siRevealDashboard() once handleRedirectPromise()/getAllAccounts() confirms
+     a signed-in session. isLocalDev() never shows it at all (display:none
+     inline below is overridden by nothing in local dev since siAuthReady
+     resolves immediately and this element is simply left in the DOM,
+     invisible behind the real dashboard which mounts underneath it --
+     harmless, but if that bothers you it's safe to add
+     `display: {{ isLocalDev() ? 'none' : 'flex' }}` here once the DC
+     compiler's context makes that expression reachable from plain HTML). -->
+<div id="siAuthOverlay" style="position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: radial-gradient(1100px 700px at 14% -8%, rgba(91,155,213,.10), transparent 60%), radial-gradient(900px 640px at 96% 6%, rgba(236,109,37,.07), transparent 55%), #081b34; font-family: 'Poppins', system-ui, sans-serif">
+  <div style="width: 360px; max-width: 88vw; background: linear-gradient(165deg, rgba(24,66,114,.36), rgba(14,42,76,.30)); border: 1px solid rgba(38,78,124,.75); border-radius: 13px; box-shadow: 0 12px 28px -18px rgba(0,0,0,.55); padding: 36px 32px 30px; text-align: center">
+    <img src="assets/meridian-mark.png" alt="Meridian" style="width: 44px; height: 44px; object-fit: contain; margin-bottom: 12px">
+    <div style="font-size: 17px; font-weight: 700; color: #f3f7fc">Meridian Nexus</div>
+    <div style="font-size: 9.5px; font-weight: 700; letter-spacing: .16em; color: #ec6d25; margin-top: 2px">SALES INSIGHTS</div>
+    <div style="height: 1px; background: rgba(38,78,124,.6); margin: 20px 0"></div>
+    <button id="signInBtn" style="width: 100%; height: 42px; background: #fff; color: #3c4043; border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px">
+      <svg width="16" height="16" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      Sign in with Microsoft
+    </button>
+    <div id="siAuthLoadingBox" class="auth-loading-box" aria-live="polite">
+      <div class="auth-spinner" aria-hidden="true"></div>
+      <div id="siAuthLoadingTitle" class="auth-loading-title">Preparing your dashboard</div>
+      <div id="siAuthLoadingSub" class="auth-loading-sub">Please wait while Nexus loads your data.</div>
+    </div>
+    <div id="siAuthError" style="font-size: 12px; color: #D94F3A; margin-top: 10px; min-height: 16px"></div>
+    <div style="margin-top: 18px; font-size: 10.5px; color: #4A6B8A; line-height: 1.5">Access is limited to Meridian Group accounts.</div>
   </div>
 </div>
 
@@ -171,7 +186,7 @@
         </select>
       </div>
       <div style="flex: 1 1 0; min-width: 128px">
-        <span class="si-label">Zone</span>
+        <span class="si-label">Division</span>
         <select class="si-ctl" value="{{ zone }}" onChange="{{ setZone }}">
           <sc-for list="{{ zoneOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
         </select>
@@ -2171,13 +2186,7 @@
 const SI_MSAL_CONFIG = {
   clientId: "2e19d14d-6914-4f52-8bbb-119481314eef",
   tenantId: "cbe83df2-b350-4dab-8d5f-f78d21fe7d27",
-  // Fixed at the registered root URL (not window.location.pathname) -- this
-  // file's own URL ("Sales Insights Dashboard.dc.html") is NOT a registered
-  // redirect URI in Azure AD; only the login page's root URL is. The rare
-  // acquireTokenRedirect() fallback below (silent token refresh failed)
-  // would otherwise throw AADSTS50011 same as the original bug this
-  // session traced back to a missing redirect URI.
-  redirectUri: window.location.origin + "/Sales-Insights/",
+  redirectUri: window.location.origin + window.location.pathname,
 };
 const SI_API_SCOPE = "api://878107a0-1dfb-4697-a7a1-615e47e9f67b/access_as_user";
 
@@ -2185,44 +2194,17 @@ function siIsLocalDev() {
   return ["localhost", "127.0.0.1"].includes(window.location.hostname);
 }
 
+const siMsalInstance = siIsLocalDev() ? null : new msal.PublicClientApplication({
+  auth: {
+    clientId: SI_MSAL_CONFIG.clientId,
+    authority: `https://login.microsoftonline.com/${SI_MSAL_CONFIG.tenantId}`,
+    redirectUri: SI_MSAL_CONFIG.redirectUri,
+  },
+  cache: { cacheLocation: "sessionStorage" },
+});
+
 let siResolveAuthReady;
 const siAuthReady = new Promise((resolve) => { siResolveAuthReady = resolve; });
-
-// Absolute failsafe -- registered before ANYTHING below that could throw
-// (constructing the MSAL client, calling into it, etc). Confirmed
-// 2026-08-22: the previous version's per-call timeout guard was itself
-// inside the same script as `new msal.PublicClientApplication(...)`, which
-// runs at module-eval time against `msal` -- a global from a `defer`red
-// CDN script tag. If that hadn't finished loading yet (a real, timing-
-// dependent race against network speed, not something that reproduces on
-// every load), the constructor throws a plain uncaught ReferenceError that
-// kills the whole script block right there, before the timeout guard
-// below ever gets registered -- "Checking your session..." then hangs
-// forever with NO console error at all pointing at why, since nothing
-// downstream ever ran. This one is deliberately the very first thing in
-// the file's script so it can't be skipped by a later crash.
-setTimeout(() => {
-  if (document.getElementById("siAuthOverlay")?.style.display !== "none") {
-    console.error("si-auth: failsafe fired -- something before this point never completed");
-    const overlay = document.getElementById("siAuthOverlay");
-    if (overlay) overlay.style.display = "none";
-    siResolveAuthReady();
-  }
-}, 8000);
-
-let siMsalInstance = null;
-try {
-  siMsalInstance = siIsLocalDev() ? null : new msal.PublicClientApplication({
-    auth: {
-      clientId: SI_MSAL_CONFIG.clientId,
-      authority: `https://login.microsoftonline.com/${SI_MSAL_CONFIG.tenantId}`,
-      redirectUri: SI_MSAL_CONFIG.redirectUri,
-    },
-    cache: { cacheLocation: "sessionStorage" },
-  });
-} catch (e) {
-  console.error("si-auth: failed to construct MSAL client (is the msal-browser CDN script still loading?):", e);
-}
 
 function siSetAuthLoading(title, subtitle) {
   const box = document.getElementById("siAuthLoadingBox");
@@ -2250,53 +2232,39 @@ if (siIsLocalDev()) {
   siResolveAuthReady();
   const siOverlayEl = document.getElementById("siAuthOverlay");
   if (siOverlayEl) siOverlayEl.style.display = "none";
-} else if (!siMsalInstance) {
-  // Constructor threw (caught above) -- nothing to check a session with.
-  // The 8s failsafe further up will catch this and bounce to login if
-  // this branch itself doesn't (belt and braces: it always will, this is
-  // just for clarity/immediacy rather than waiting out the failsafe).
-  console.error("si-auth: no MSAL instance, cannot verify session");
-  window.location.href = "index.html";
 } else {
-  // Race handleRedirectPromise() against a hard timeout -- confirmed
-  // 2026-08-22 that a plain .then()/.catch() on it isn't enough: if the
-  // promise itself never settles (hangs, rather than resolving or
-  // rejecting -- seen in practice after a real sign-in redirect back to
-  // this page), neither callback ever fires and the page is stuck on
-  // "Checking your session..." forever. A timeout guarantees this always
-  // resolves one way or the other within a few seconds.
-  let siAuthSettled = false;
-  const siAuthTimeout = setTimeout(() => {
-    if (siAuthSettled) return;
-    siAuthSettled = true;
-    console.error("handleRedirectPromise timed out after 6s");
-    // A cached account may still exist even if the redirect-promise call
-    // itself hung -- check directly before giving up and bouncing to login.
-    if (siMsalInstance.getAllAccounts().length > 0) siRevealDashboard();
-    else window.location.href = "index.html";
-  }, 6000);
-
   siMsalInstance.handleRedirectPromise().then((result) => {
-    if (siAuthSettled) return;
-    siAuthSettled = true;
-    clearTimeout(siAuthTimeout);
-    if (result || siMsalInstance.getAllAccounts().length > 0) {
+    if (result) {
+      siSetAuthLoading("Preparing your dashboard", "Sign-in complete. Please wait while Nexus loads your data.");
       siRevealDashboard();
-    } else {
-      // No completed redirect and no cached account -- this page was
-      // reached directly (bookmark, link, session expired) rather than via
-      // the login page. Bounce back there instead of hanging forever on
-      // "Checking your session..." (the bug this replaces: the old code
-      // only ever handled the *signed-in* case and simply never resolved
-      // siAuthReady otherwise).
-      window.location.href = "index.html";
+    } else if (siMsalInstance.getAllAccounts().length > 0) {
+      siSetAuthLoading("Preparing your dashboard", "Please wait while Nexus reconnects to your session.");
+      siRevealDashboard();
     }
   }).catch((e) => {
-    if (siAuthSettled) return;
-    siAuthSettled = true;
-    clearTimeout(siAuthTimeout);
     console.error("handleRedirectPromise error:", e);
-    window.location.href = "index.html";
+    const errEl = document.getElementById("siAuthError");
+    if (errEl) errEl.textContent = "Sign-in failed. Please try again.";
+    siClearAuthLoading();
+  });
+
+  // Delegated on `document` (not bound directly to #signInBtn): this script
+  // runs as part of the DC framework's boot sequence, well before the
+  // button node it targets is guaranteed to exist -- a direct
+  // getElementById+addEventListener here would silently never fire.
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest && e.target.closest("#signInBtn");
+    if (!btn) return;
+    const errEl = document.getElementById("siAuthError");
+    if (errEl) errEl.textContent = "";
+    siSetAuthLoading("Signing in", "Redirecting to Microsoft sign-in...");
+    try {
+      await siMsalInstance.loginRedirect({ scopes: [SI_API_SCOPE] });
+    } catch (err) {
+      console.error("loginRedirect error:", err);
+      if (errEl) errEl.textContent = "Sign-in failed. Please try again.";
+      siClearAuthLoading();
+    }
   });
 }
 
@@ -2856,7 +2824,7 @@ class Component extends DCLogic {
       signalRows: [], signalNote: "", brandRows: [],
       monthOpts: [{ key: "latest", label: "Latest month" }],
       regionOpts: [{ key: "all", label: "All regions" }],
-      zoneOpts: [{ key: "all", label: "All zones" }],
+      zoneOpts: [{ key: "all", label: "All divisions" }],
       categoryOpts: [{ key: "all", label: "All categories" }],
       clientOpts: [{ key: "all", label: "All clients" }],
       brandOpts: [{ key: "all", label: "All brands" }],
@@ -2891,7 +2859,7 @@ class Component extends DCLogic {
     // Inland/Coastal/Central, eager-fetched via hierarchy_levels?level=zone
     // (d.zones, from loadCore) -- new filter added 2026-08-22, sourced from
     // the National Reporting Hierarchy's Division column.
-    const zoneOpts = [{ key: "all", label: "All zones" }]
+    const zoneOpts = [{ key: "all", label: "All divisions" }]
       .concat((d.zones || []).map(z => ({ key: z.name, label: z.name })));
     const catNames = new Set(d.category_monthly.map(c => c.category));
     const categoryOpts = [{ key: "all", label: "All categories" }]
