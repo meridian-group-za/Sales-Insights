@@ -1981,9 +1981,10 @@
             <span style="font-size: 10.5px; color: #4A6B8A">Every filter below is optional and combinable — pick any subset</span>
           </div>
           <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px">
-            <select class="si-ctl" value="{{ mxStore }}" onChange="{{ setMxStore }}" style="flex: 0 0 190px">
-              <sc-for list="{{ mxStoreOpts }}" as="o" hint-placeholder-count="10"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-            </select>
+            <input type="text" list="si-mx-stores" placeholder="All stores (type to search)" value="{{ mxStoreQ }}" onChange="{{ setMxStoreQ }}" class="si-ctl" style="flex: 0 0 220px">
+            <datalist id="si-mx-stores">
+              <sc-for list="{{ mxStoreOpts }}" as="o" hint-placeholder-count="10"><option value="{{ o.label }}"></option></sc-for>
+            </datalist>
             <select class="si-ctl" value="{{ mxClient }}" onChange="{{ setMxClient }}" style="flex: 0 0 160px">
               <sc-for list="{{ mxClientOpts }}" as="o" hint-placeholder-count="10"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
             </select>
@@ -2316,7 +2317,7 @@ class Component extends DCLogic {
     // store_performance (store x client only, no product). Also carries
     // the National Reporting Hierarchy levels (Head of Syndicated/General
     // Manager/Regional Manager/Manager), all stackable with the other four.
-    mxStore: "", mxClient: "all", mxProduct: "all", mxRegion: "all",
+    mxStore: "", mxStoreQ: "", mxClient: "all", mxProduct: "all", mxRegion: "all",
     mxHos: "", mxGm: "", mxRm: "", mxMgr: "",
     mxRows: [], mxLoading: false, mxLoaded: false,
     hosOpts: [], gmOpts: [], rmOpts: [], mgrOpts: []
@@ -2596,6 +2597,22 @@ class Component extends DCLogic {
 
   setMx(field) {
     return (e) => this.setState({ [field]: e.target.value }, () => this.loadStoreMatrix());
+  }
+
+  // Type-to-search store picker (replaced the 8000-option plain <select>,
+  // 2026-08-22): the <input list=...> datalist gives back whatever text the
+  // user typed/picked, which is the display LABEL (title-cased), not the
+  // raw store name the backend filters on -- resolve it back to the real
+  // key here, same idea as the Store league table's existing stQ search.
+  setMxStoreQ(e) {
+    const q = e.target.value;
+    // mxStoreOpts itself only exists as a computed render value (built
+    // fresh from d.store_performance in renderVals), not real component
+    // state, so it can't be read back here -- rebuild the same key<->label
+    // mapping directly off the raw data instead.
+    const d = this.state.d;
+    const match = d && d.store_performance ? d.store_performance.find(r => this.title(r.store_name) === q) : null;
+    this.setState({ mxStoreQ: q, mxStore: match ? match.store_name : "" }, () => this.loadStoreMatrix());
   }
 
   // Called from nav clicks and from filter onChange handlers that affect a
@@ -5353,9 +5370,9 @@ class Component extends DCLogic {
       gmOpts: [{ key: "", label: "All General Managers" }].concat((S.gmOpts || []).map(o => ({ key: o.name, label: this.title(o.name) }))),
       rmOpts: [{ key: "", label: "All Regional Managers" }].concat((S.rmOpts || []).map(o => ({ key: o.name, label: this.title(o.name) }))),
       mgrOpts: [{ key: "", label: "All Managers" }].concat((S.mgrOpts || []).map(o => ({ key: o.name, label: this.title(o.name) }))),
-      mxStore: S.mxStore || "", mxClient: S.mxClient || "all", mxProduct: S.mxProduct || "all", mxRegion: S.mxRegion || "all",
+      mxStore: S.mxStore || "", mxStoreQ: S.mxStoreQ || "", mxClient: S.mxClient || "all", mxProduct: S.mxProduct || "all", mxRegion: S.mxRegion || "all",
       mxHos: S.mxHos || "", mxGm: S.mxGm || "", mxRm: S.mxRm || "", mxMgr: S.mxMgr || "",
-      setMxStore: this.setMx("mxStore"), setMxClient: this.setMx("mxClient"), setMxProduct: this.setMx("mxProduct"),
+      setMxStore: this.setMx("mxStore"), setMxStoreQ: this.setMxStoreQ.bind(this), setMxClient: this.setMx("mxClient"), setMxProduct: this.setMx("mxProduct"),
       setMxRegion: this.setMx("mxRegion"), setMxHos: this.setMx("mxHos"), setMxGm: this.setMx("mxGm"),
       setMxRm: this.setMx("mxRm"), setMxMgr: this.setMx("mxMgr"),
     });
