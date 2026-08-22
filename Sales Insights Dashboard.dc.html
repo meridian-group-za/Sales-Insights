@@ -175,11 +175,24 @@
           <sc-for list="{{ monthOpts }}" as="o" hint-placeholder-count="8"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
         </select>
       </div>
-      <div style="flex: 1 1 0; min-width: 128px">
+      <div style="flex: 1 1 0; min-width: 128px; position: relative">
         <span class="si-label">Category</span>
-        <select class="si-ctl" value="{{ category }}" onChange="{{ setCategory }}">
-          <sc-for list="{{ categoryOpts }}" as="o" hint-placeholder-count="8"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-        </select>
+        <button type="button" class="si-ctl" onClick="{{ toggleCategoryMenu }}" style="width: 100%; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between">
+          <span>{{ categoryMenuLabel }}</span>
+          <span style="opacity: .6">&#9662;</span>
+        </button>
+        <sc-if cond="{{ categoryMenuOpen }}">
+          <div style="position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 60; min-width: 220px; max-height: 320px; overflow-y: auto; background: #0e2a4c; border: 1px solid rgba(157,196,236,.35); border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,.4); padding: 6px">
+            <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 12.5px; color: #f3f7fc; cursor: pointer; border-bottom: 1px solid rgba(157,196,236,.15); margin-bottom: 4px">
+              <input type="checkbox" checked="{{ categoryIsAll }}" onChange="{{ setCategoryAll }}">All categories
+            </label>
+            <sc-for list="{{ categoryCheckOpts }}" as="o" hint-placeholder-count="8">
+              <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 12.5px; color: #D9E2EC; cursor: pointer">
+                <input type="checkbox" checked="{{ o.checked }}" onChange="{{ o.toggle }}">{{ o.label }}
+              </label>
+            </sc-for>
+          </div>
+        </sc-if>
       </div>
       <div style="flex: 1 1 0; min-width: 128px">
         <span class="si-label">Brand</span>
@@ -187,11 +200,24 @@
           <sc-for list="{{ brandOpts }}" as="o" hint-placeholder-count="8"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
         </select>
       </div>
-      <div style="flex: 1 1 0; min-width: 128px">
+      <div style="flex: 1 1 0; min-width: 128px; position: relative">
         <span class="si-label">Region</span>
-        <select class="si-ctl" value="{{ region }}" onChange="{{ setRegion }}">
-          <sc-for list="{{ regionOpts }}" as="o" hint-placeholder-count="8"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-        </select>
+        <button type="button" class="si-ctl" onClick="{{ toggleRegionMenu }}" style="width: 100%; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between">
+          <span>{{ regionMenuLabel }}</span>
+          <span style="opacity: .6">&#9662;</span>
+        </button>
+        <sc-if cond="{{ regionMenuOpen }}">
+          <div style="position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 60; min-width: 220px; max-height: 320px; overflow-y: auto; background: #0e2a4c; border: 1px solid rgba(157,196,236,.35); border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,.4); padding: 6px">
+            <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 12.5px; color: #f3f7fc; cursor: pointer; border-bottom: 1px solid rgba(157,196,236,.15); margin-bottom: 4px">
+              <input type="checkbox" checked="{{ regionIsAll }}" onChange="{{ setRegionAll }}">All regions
+            </label>
+            <sc-for list="{{ regionCheckOpts }}" as="o" hint-placeholder-count="8">
+              <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 12.5px; color: #D9E2EC; cursor: pointer">
+                <input type="checkbox" checked="{{ o.checked }}" onChange="{{ o.toggle }}">{{ o.label }}
+              </label>
+            </sc-for>
+          </div>
+        </sc-if>
       </div>
       <div style="flex: 1 1 0; min-width: 128px">
         <span class="si-label">Division</span>
@@ -2273,7 +2299,7 @@ class Component extends DCLogic {
     d: null, err: "", page: "overview", yoyView: "monthly",
     measure: "value", includePartial: true,
     scopeMonth: "p12m", region: "all", zone: "all", category: "all", client: "all", brand: "all", product: "all",
-    clientMenuOpen: false,
+    clientMenuOpen: false, categoryMenuOpen: false, regionMenuOpen: false,
     dim: "region", top: "brands", signal: "growing",
     q: "", tier: "all", banner: "all", sort: "val", limit: 20,
     findingsOpen: false,
@@ -2608,6 +2634,23 @@ class Component extends DCLogic {
       () => { this.refetchCurrentPage(); this.refetchFilterOptions(); });
   }
 
+  // Generic multi-select toggle for a plain "all"-or-comma-list filter
+  // field (Category/Region) -- Client has its own version above since it
+  // also resets brand/category/product and calls refetchFilterOptions.
+  toggleMultiMenu(menuField) {
+    this.setState(s => ({ [menuField]: !s[menuField] }));
+  }
+
+  setMultiAll(field, menuField) {
+    this.setState({ [field]: "all", [menuField]: false }, () => this.refetchCurrentPage());
+  }
+
+  toggleMultiOne(field, value) {
+    const current = this.state[field] === "all" ? [] : this.state[field].split(",").filter(Boolean);
+    const next = current.includes(value) ? current.filter(v => v !== value) : current.concat([value]);
+    this.setState({ [field]: next.length ? next.join(",") : "all" }, () => this.refetchCurrentPage());
+  }
+
   // Called from nav clicks and from filter onChange handlers that affect a
   // page whose data already loaded once -- refetches with the new filter
   // value instead of leaving the page showing stale/unfiltered numbers.
@@ -2899,6 +2942,22 @@ class Component extends DCLogic {
       label: this.title(c), checked: clientSelList.includes(c),
       toggle: () => this.toggleClientOne(c),
     }));
+    // Generic multi-select derived state for Category/Region -- same shape
+    // as Client's above, built off whatever the real dropdown options list
+    // for that field already is (categoryOpts/regionOpts, minus the "all"
+    // entry) so it stays consistent with whatever's actually selectable.
+    const multiSnapshot = (field, opts, allLabel) => {
+      const selList = S[field] === "all" ? [] : S[field].split(",").filter(Boolean);
+      const isAll = selList.length === 0;
+      const realOpts = opts.filter(o => o.key !== "all");
+      return {
+        isAll,
+        menuLabel: isAll ? allLabel : selList.length === 1 ? (realOpts.find(o => o.key === selList[0]) || { label: this.title(selList[0]) }).label : selList.length + " selected",
+        checkOpts: realOpts.map(o => ({ label: o.label, checked: selList.includes(o.key), toggle: () => this.toggleMultiOne(field, o.key) })),
+      };
+    };
+    const categoryMulti = multiSnapshot("category", categoryOpts, "All categories");
+    const regionMulti = multiSnapshot("region", regionOpts, "All regions");
     // Was sourced from d.dimension_brand.rows, lazy-loaded only once the
     // Brands page had been visited -- same class of bug as regionOpts had
     // with province_monthly (global header filter permanently stuck on
@@ -2951,8 +3010,8 @@ class Component extends DCLogic {
     if (monthlyPicks.length > 1) notes.push("Monthly figures follow the " + (S.category !== "all" ? "category" : "region") + " slice only — this extract has no combined " + monthlyPicks.join(" × ") + " split.");
     scopeLabel = [
       S.client !== "all" ? clientMenuLabel : null,
-      S.category !== "all" ? this.title(S.category) : null,
-      S.region !== "all" ? this.title(S.region) : null,
+      S.category !== "all" ? categoryMulti.menuLabel : null,
+      S.region !== "all" ? regionMulti.menuLabel : null,
       S.brand !== "all" ? this.title(S.brand) : null,
       S.product !== "all" ? this.title(S.product) : null
     ].filter(Boolean).join(" · ") || "All clients";
@@ -5387,6 +5446,10 @@ class Component extends DCLogic {
       clientOpts, brandOpts, productOpts, filterNote: notes.join("  ·  "),
       clientMenuOpen: S.clientMenuOpen, clientMenuLabel, clientIsAll, clientCheckOpts,
       toggleClientMenu: this.toggleClientMenu.bind(this), setClientAll: this.setClientAll.bind(this),
+      categoryMenuOpen: S.categoryMenuOpen, categoryMenuLabel: categoryMulti.menuLabel, categoryIsAll: categoryMulti.isAll, categoryCheckOpts: categoryMulti.checkOpts,
+      toggleCategoryMenu: () => this.toggleMultiMenu("categoryMenuOpen"), setCategoryAll: () => this.setMultiAll("category", "categoryMenuOpen"),
+      regionMenuOpen: S.regionMenuOpen, regionMenuLabel: regionMulti.menuLabel, regionIsAll: regionMulti.isAll, regionCheckOpts: regionMulti.checkOpts,
+      toggleRegionMenu: () => this.toggleMultiMenu("regionMenuOpen"), setRegionAll: () => this.setMultiAll("region", "regionMenuOpen"),
       storeCount: "Showing " + storeRows.length + " of " + stores.length + " stores",
       storeHasMore: stores.length > storeRows.length,
       signalRows, signalNote, brandRows,
