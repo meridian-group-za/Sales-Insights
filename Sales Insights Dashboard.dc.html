@@ -3295,8 +3295,21 @@ class Component extends DCLogic {
       (!S.stSeg || r.tier === S.stSeg) &&
       (!S.stSize || sizeOf(r) === S.stSize)
     );
+    // Scoped to the same banner/brand/client/segment/size filters as
+    // stFiltered (but NOT S.stStore itself, so picking a store doesn't
+    // immediately narrow its own dropdown down to one option) -- fixed
+    // 2026-08-22: this used the full unfiltered store list before, so
+    // selecting "Checkers" as the retailer still showed Makro stores in
+    // the store-name dropdown.
+    const stOptsSource = stRowsAll.filter(r =>
+      (!S.banner || S.banner === "all" || r.banner === S.banner) &&
+      (S.brand === "all" || (r.top_brand || "").toUpperCase() === S.brand) &&
+      (S.client === "all" || (r.client || "").toUpperCase() === S.client) &&
+      (!S.stSeg || r.tier === S.stSeg) &&
+      (!S.stSize || sizeOf(r) === S.stSize)
+    );
     const storeOpts = [{ key: "", label: "All stores" }].concat(
-      d.store_performance.slice().sort((a, z) => z.val_12m - a.val_12m).map(r => ({ key: r.store_name, label: this.title(r.store_name) }))
+      stOptsSource.slice().sort((a, z) => z.val_12m - a.val_12m).map(r => ({ key: r.store_name, label: this.title(r.store_name) }))
     );
     const stq = (S.stQ || "").trim().toLowerCase();
     const stSearched = stq ? stFiltered.filter(r => (r.store_name || "").toLowerCase().includes(stq) || (r.banner || "").toLowerCase().includes(stq)) : stFiltered;
