@@ -588,6 +588,16 @@
                   </div>
                 </sc-for>
               </div>
+              <div style="font-size: 9.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #ec6d25; margin: 16px 0 8px">Divisional snapshot</div>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+                <sc-for list="{{ divisionSnapshot }}" as="s" hint-placeholder-count="3">
+                  <div class="si-tile" style="padding: 10px 11px">
+                    <div style="font-size: 8.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: {{ s.color }}">{{ s.name }}</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #f3f7fc; margin: 5px 0 2px">{{ s.valuePct }} value</div>
+                    <div style="font-size: 10.5px; color: #8DA2B5; font-variant-numeric: tabular-nums">{{ s.volumePct }} volume</div>
+                  </div>
+                </sc-for>
+              </div>
               <div style="font-size: 9.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #ec6d25; margin: 16px 0 8px">{{ mapLegendTitle }}</div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px">
                 <sc-for list="{{ mapBands }}" as="b" hint-placeholder-count="5">
@@ -3550,6 +3560,35 @@ class Component extends DCLogic {
     };
     const valueShare = shareBar("cv", provSumCur);
     const volumeShare = shareBar("cu", provSumUnits);
+
+    // Divisional snapshot (Central/Coastal/Inland) -- same confirmed-complete
+    // Region->Division mapping used server-side for the ?zone= filter fix,
+    // 2026-08-22 (Carin: put the value/volume split by division below the
+    // Regional snapshot, each as a %). Computed client-side from the
+    // already-loaded province data rather than a new API call.
+    const SI_REGION_DIVISION = {
+      'EAST LONDON/EASTERN CAPE': 'Coastal', 'FREE STATE': 'Central', 'GAUTENG': 'Inland',
+      'KWA-ZULU NATAL': 'Coastal', 'LIMPOPO': 'Inland', 'MPUMALANGA': 'Inland',
+      'NORTH WEST': 'Central', 'PE OPERATIONS': 'Coastal', 'SWD OPERATIONS': 'Coastal',
+      'WESTERN CAPE': 'Coastal',
+    };
+    const divAgg = {};
+    provList.forEach(r => {
+      const div = SI_REGION_DIVISION[(r.name || "").trim().toUpperCase()] || "Unmapped";
+      const t = divAgg[div] || (divAgg[div] = { name: div, cv: 0, cu: 0 });
+      t.cv += r.cv; t.cu += r.cu;
+    });
+    const divList = Object.values(divAgg);
+    const divColors = { Central: "#5B9BD5", Coastal: "#2FA97C", Inland: "#ec6d25", Unmapped: "#8DA2B5" };
+    const divisionSnapshot = ["Central", "Coastal", "Inland"].map(name => {
+      const t = divAgg[name] || { cv: 0, cu: 0 };
+      return {
+        name, color: divColors[name],
+        valuePct: (provSumCur ? t.cv / provSumCur * 100 : 0).toFixed(1) + "%",
+        volumePct: (provSumUnits ? t.cu / provSumUnits * 100 : 0).toFixed(1) + "%",
+        value: this.cur(t.cv), units: this.num(t.cu),
+      };
+    });
     const provByVal = provList.slice().sort((a, z) => z.cv - a.cv)[0] || {};
     const provByVol = provList.slice().sort((a, z) => z.cu - a.cu)[0] || {};
     const provGrowth = provList.slice().filter(r => r.lv).sort((a, z) => (z.cv / z.lv) - (a.cv / a.lv))[0] || {};
@@ -5254,7 +5293,7 @@ class Component extends DCLogic {
       brandHeadline: "Brand value totals " + this.cur(bTotCur) + " over the " + bPeriodLabel + ", "
         + (bTotLy ? (bTotCur >= bTotLy ? "up " : "down ") + this.bare(bTotCur / bTotLy - 1) : "flat")
         + " on the " + bCmpWord + ", across " + this.num(bTotUnits) + " units.",
-      mapBands, regionSnapshot, valueShare, volumeShare, mapFrameRef: this.mapRef,
+      mapBands, regionSnapshot, valueShare, volumeShare, divisionSnapshot, mapFrameRef: this.mapRef,
       mapMeasureOpts: [{ key: "value", label: "Value" }, { key: "volume", label: "Volume" }].map(o => ({
         label: o.label, on: mapMeasure === o.key, pick: () => this.setState({ mapMeasure: o.key })
       })),
