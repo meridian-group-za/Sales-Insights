@@ -2186,7 +2186,12 @@
 const SI_MSAL_CONFIG = {
   clientId: "2e19d14d-6914-4f52-8bbb-119481314eef",
   tenantId: "cbe83df2-b350-4dab-8d5f-f78d21fe7d27",
-  redirectUri: window.location.origin + window.location.pathname,
+  // Hardcoded to the registered root URL -- NOT window.location.pathname.
+  // This file's own URL ("Sales Insights Dashboard.dc.html") is NOT a
+  // registered Azure AD redirect URI, only the login page's root URL is.
+  // acquireTokenRedirect() in siGetApiToken() below (silent token refresh
+  // failed) would otherwise throw AADSTS50011.
+  redirectUri: "https://meridian-group-za.github.io/Sales-Insights/",
 };
 const SI_API_SCOPE = "api://878107a0-1dfb-4697-a7a1-615e47e9f67b/access_as_user";
 
