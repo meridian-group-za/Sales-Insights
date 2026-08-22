@@ -69,6 +69,23 @@
 </style>
 </helmet>
 
+<sc-if value="{{ needsSignIn }}">
+  <div style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: radial-gradient(1100px 700px at 14% -8%, rgba(91,155,213,.10), transparent 60%), radial-gradient(900px 640px at 96% 6%, rgba(236,109,37,.07), transparent 55%), #081b34">
+    <div class="si-panel" style="width: 340px; padding: 34px 30px; text-align: center">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 22px">
+        <img src="assets/meridian-mark.png" alt="" style="width: 34px; height: 34px; object-fit: contain">
+        <div style="text-align: left">
+          <div style="font-size: 15px; font-weight: 700; color: #f3f7fc; line-height: 1.1">Meridian Nexus</div>
+          <div style="font-size: 9.5px; font-weight: 700; letter-spacing: .16em; color: #ec6d25">SALES INSIGHTS</div>
+        </div>
+      </div>
+      <div style="font-size: 13px; color: #8DA2B5; margin-bottom: 22px">Sign in with your Meridian account to view live sales data.</div>
+      <button class="si-btn" style="width: 100%; height: 40px; font-size: 12.5px" onClick="{{ signIn }}">Sign in with Microsoft</button>
+      <sc-if value="{{ signInError }}"><div style="margin-top: 14px; font-size: 11px; color: #D94F3A">{{ signInError }}</div></sc-if>
+    </div>
+  </div>
+</sc-if>
+
 <div style="display: flex; min-height: 100vh; background: #081b34">
   <aside style="width: 256px; flex: none; position: sticky; top: 0; align-self: flex-start; height: 100vh; display: flex; background: rgba(8,22,44,.88); backdrop-filter: blur(16px); border-right: 1px solid rgba(28,63,107,.92); box-shadow: 14px 0 36px rgba(0,0,0,.18)">
     <div style="width: 5px; flex-shrink: 0; background: linear-gradient(180deg, #F58220 0%, #e06010 100%)"></div>
@@ -2329,14 +2346,36 @@ class Component extends DCLogic {
     const params = { client: this.state.client, category: this.state.category, brand: this.state.brand,
       region: this.state.region, zone: this.state.zone, banner: this.state.banner, product: this.state.product };
     const patch = {};
+    // Sequence guard against out-of-order responses -- confirmed 2026-08-22:
+    // navigating to a page (unfiltered fetch) then immediately changing a
+    // filter (refetchCurrentPage -> a second, filtered fetch for the same
+    // page) can resolve in either order depending on server timing. Without
+    // this, whichever call happens to finish LAST wins the setState merge
+    // regardless of which one was issued last, so a slow first/unfiltered
+    // response can silently overwrite a fast filtered one and leave the
+    // Regions page map/headline showing network-wide totals under a client
+    // filter (looked identical to "filters don't work" but the data really
+    // did come back correct -- it just lost the race). this._loadSeq is a
+    // per-page counter; only the highest-numbered call for a given page is
+    // allowed to commit its patch.
+    this._loadSeq = this._loadSeq || {};
+    const seq = (this._loadSeq[page] = (this._loadSeq[page] || 0) + 1);
     try {
       if (page === "overview" || page === "trend") {
-        const [summary, kpi_cards, monthly_trend, category_monthly] = await Promise.all([
+        const [summary, kpi_cards, monthly_trend, category_monthly, bucket_summary, banner_bucket_summary] = await Promise.all([
           this.apiFetch("summary", params), this.apiFetch("kpi_cards", params),
-          this.apiFetch("monthly_trend", { client: params.client }),
+          this.apiFetch("monthly_trend", params),
           this.apiFetch("category_monthly", { client: params.client, brand: params.brand }),
+          // bucket_summary/banner_bucket_summary only ever loaded once
+          // (unfiltered) via loadCore() -- neither the Value/Volume Share by
+          // product bucket widget nor its retailer-type counterpart ever
+          // reacted to the Client filter (the only filter these two routes
+          // support; category/brand/region aren't a dimension on
+          // sales_client_monthly). Fixed 2026-08-22.
+          this.apiFetch("bucket_summary", { client: params.client }),
+          this.apiFetch("banner_bucket_summary", { client: params.client }),
         ]);
-        Object.assign(patch, { summary, kpi_cards, monthly_trend, category_monthly });
+        Object.assign(patch, { summary, kpi_cards, monthly_trend, category_monthly, bucket_summary, banner_bucket_summary });
       } else if (page === "regions") {
         const [dr, db, region_crosstab, province_monthly] = await Promise.all([
           this.apiFetch("dimension_breakdown", Object.assign({ dimension: "region" }, params)),
@@ -2404,11 +2443,12 @@ class Component extends DCLogic {
       } else {
         return; // overview/trend need nothing beyond loadCore()
       }
+      if (this._loadSeq[page] !== seq) return; // a newer request for this page already landed
       this.setState(s => ({ d: Object.assign({}, s.d, patch), loadingPage: false,
         loadedPages: Object.assign({}, s.loadedPages, { [page]: true }) }));
     } catch (e) {
       console.error("loadPage failed:", page, e);
-      this.setState({ loadingPage: false });
+      if (this._loadSeq[page] === seq) this.setState({ loadingPage: false });
     }
   }
 
