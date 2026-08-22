@@ -150,11 +150,24 @@
     </header>
 
     <div style="position: sticky; top: 0; z-index: 30; display: flex; align-items: flex-end; gap: 10px; padding: 10px 0 14px; margin: 0 -26px; padding-left: 26px; padding-right: 26px; overflow-x: auto; background: linear-gradient(to bottom, #0b2140 84%, rgba(11,33,64,0)); border-bottom: 1px solid rgba(28,63,107,.6); backdrop-filter: blur(8px)">
-      <div style="flex: 1 1 0; min-width: 128px">
+      <div style="flex: 1 1 0; min-width: 128px; position: relative">
         <span class="si-label">Client</span>
-        <select class="si-ctl" value="{{ client }}" onChange="{{ setClient }}">
-          <sc-for list="{{ clientOpts }}" as="o" hint-placeholder-count="8"><option value="{{ o.key }}">{{ o.label }}</option></sc-for>
-        </select>
+        <button type="button" class="si-ctl" onClick="{{ toggleClientMenu }}" style="width: 100%; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between">
+          <span>{{ clientMenuLabel }}</span>
+          <span style="opacity: .6">&#9662;</span>
+        </button>
+        <sc-if cond="{{ clientMenuOpen }}">
+          <div style="position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 60; min-width: 220px; max-height: 320px; overflow-y: auto; background: #0e2a4c; border: 1px solid rgba(157,196,236,.35); border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,.4); padding: 6px">
+            <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 12.5px; color: #f3f7fc; cursor: pointer; border-bottom: 1px solid rgba(157,196,236,.15); margin-bottom: 4px">
+              <input type="checkbox" checked="{{ clientIsAll }}" onChange="{{ setClientAll }}">All clients
+            </label>
+            <sc-for list="{{ clientCheckOpts }}" as="o" hint-placeholder-count="8">
+              <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 12.5px; color: #D9E2EC; cursor: pointer">
+                <input type="checkbox" checked="{{ o.checked }}" onChange="{{ o.toggle }}">{{ o.label }}
+              </label>
+            </sc-for>
+          </div>
+        </sc-if>
       </div>
       <div style="flex: 1 1 0; min-width: 128px">
         <span class="si-label">Reporting period</span>
@@ -2260,6 +2273,7 @@ class Component extends DCLogic {
     d: null, err: "", page: "overview", yoyView: "monthly",
     measure: "value", includePartial: true,
     scopeMonth: "p12m", region: "all", zone: "all", category: "all", client: "all", brand: "all", product: "all",
+    clientMenuOpen: false,
     dim: "region", top: "brands", signal: "growing",
     q: "", tier: "all", banner: "all", sort: "val", limit: 20,
     findingsOpen: false,
@@ -2573,6 +2587,27 @@ class Component extends DCLogic {
     this.setState({ mxStoreQ: q, mxStore: match ? match.store_name : "" }, () => this.loadStoreMatrix());
   }
 
+  // Client multi-select (2026-08-22): `client` state stays a plain string
+  // -- "all", one client, or several comma-joined -- so every existing
+  // reader of S.client (the header meta line, resetFilters, etc.) keeps
+  // working untouched. apiFetch already sends it through unchanged; the
+  // backend's _client_where now splits on comma and builds an IN(...).
+  toggleClientMenu() {
+    this.setState(s => ({ clientMenuOpen: !s.clientMenuOpen }));
+  }
+
+  setClientAll() {
+    this.setState({ client: "all", clientMenuOpen: false, brand: "all", category: "all", product: "all" },
+      () => { this.refetchCurrentPage(); this.refetchFilterOptions(); });
+  }
+
+  toggleClientOne(name) {
+    const current = this.state.client === "all" ? [] : this.state.client.split(",").filter(Boolean);
+    const next = current.includes(name) ? current.filter(c => c !== name) : current.concat([name]);
+    this.setState({ client: next.length ? next.join(",") : "all", brand: "all", category: "all", product: "all" },
+      () => { this.refetchCurrentPage(); this.refetchFilterOptions(); });
+  }
+
   // Called from nav clicks and from filter onChange handlers that affect a
   // page whose data already loaded once -- refetches with the new filter
   // value instead of leaving the page showing stale/unfiltered numbers.
@@ -2855,6 +2890,15 @@ class Component extends DCLogic {
       .concat(d.categories.filter(c => catNames.has(c.category)).slice(0, 40).map(c => ({ key: c.category, label: this.title(c.category) })));
     const clientOpts = [{ key: "all", label: "All clients" }]
       .concat(d.meta.clients.map(c => ({ key: c, label: this.title(c) })));
+    const clientSelList = S.client === "all" ? [] : S.client.split(",").filter(Boolean);
+    const clientIsAll = clientSelList.length === 0;
+    const clientMenuLabel = clientIsAll ? "All clients"
+      : clientSelList.length === 1 ? this.title(clientSelList[0])
+      : clientSelList.length + " clients selected";
+    const clientCheckOpts = d.meta.clients.map(c => ({
+      label: this.title(c), checked: clientSelList.includes(c),
+      toggle: () => this.toggleClientOne(c),
+    }));
     // Was sourced from d.dimension_brand.rows, lazy-loaded only once the
     // Brands page had been visited -- same class of bug as regionOpts had
     // with province_monthly (global header filter permanently stuck on
@@ -2906,7 +2950,7 @@ class Component extends DCLogic {
     ].filter(Boolean);
     if (monthlyPicks.length > 1) notes.push("Monthly figures follow the " + (S.category !== "all" ? "category" : "region") + " slice only — this extract has no combined " + monthlyPicks.join(" × ") + " split.");
     scopeLabel = [
-      S.client !== "all" ? this.title(S.client) : null,
+      S.client !== "all" ? clientMenuLabel : null,
       S.category !== "all" ? this.title(S.category) : null,
       S.region !== "all" ? this.title(S.region) : null,
       S.brand !== "all" ? this.title(S.brand) : null,
@@ -5341,6 +5385,8 @@ class Component extends DCLogic {
       bridgeCaption: "Volume moved " + this.cur(b.volume) + " and mix " + this.cur(b.mix) + ", while price added " + this.cur(b.price) + " — a net " + this.cur(b.net_change) + ".",
       dimRows, mixBlocks, topRows, tierOpts, bannerOpts, monthOpts, regionOpts, zoneOpts, categoryOpts,
       clientOpts, brandOpts, productOpts, filterNote: notes.join("  ·  "),
+      clientMenuOpen: S.clientMenuOpen, clientMenuLabel, clientIsAll, clientCheckOpts,
+      toggleClientMenu: this.toggleClientMenu.bind(this), setClientAll: this.setClientAll.bind(this),
       storeCount: "Showing " + storeRows.length + " of " + stores.length + " stores",
       storeHasMore: stores.length > storeRows.length,
       signalRows, signalNote, brandRows,
