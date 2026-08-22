@@ -2225,37 +2225,20 @@ if (siIsLocalDev()) {
   if (siOverlayEl) siOverlayEl.style.display = "none";
 } else {
   siMsalInstance.handleRedirectPromise().then((result) => {
-    if (result) {
-      siSetAuthLoading("Preparing your dashboard", "Sign-in complete. Please wait while Nexus loads your data.");
+    if (result || siMsalInstance.getAllAccounts().length > 0) {
       siRevealDashboard();
-    } else if (siMsalInstance.getAllAccounts().length > 0) {
-      siSetAuthLoading("Preparing your dashboard", "Please wait while Nexus reconnects to your session.");
-      siRevealDashboard();
+    } else {
+      // No completed redirect and no cached account -- this page was
+      // reached directly (bookmark, link, session expired) rather than via
+      // the login page. Bounce back there instead of hanging forever on
+      // "Checking your session..." (the bug this replaces: the old code
+      // only ever handled the *signed-in* case and simply never resolved
+      // siAuthReady otherwise).
+      window.location.href = "index.html";
     }
   }).catch((e) => {
     console.error("handleRedirectPromise error:", e);
-    const errEl = document.getElementById("siAuthError");
-    if (errEl) errEl.textContent = "Sign-in failed. Please try again.";
-    siClearAuthLoading();
-  });
-
-  // Delegated on `document` (not bound directly to #signInBtn): this script
-  // runs as part of the DC framework's boot sequence, well before the
-  // button node it targets is guaranteed to exist -- a direct
-  // getElementById+addEventListener here would silently never fire.
-  document.addEventListener("click", async (e) => {
-    const btn = e.target.closest && e.target.closest("#signInBtn");
-    if (!btn) return;
-    const errEl = document.getElementById("siAuthError");
-    if (errEl) errEl.textContent = "";
-    siSetAuthLoading("Signing in", "Redirecting to Microsoft sign-in...");
-    try {
-      await siMsalInstance.loginRedirect({ scopes: [SI_API_SCOPE] });
-    } catch (err) {
-      console.error("loginRedirect error:", err);
-      if (errEl) errEl.textContent = "Sign-in failed. Please try again.";
-      siClearAuthLoading();
-    }
+    window.location.href = "index.html";
   });
 }
 
