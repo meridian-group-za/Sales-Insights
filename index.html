@@ -117,13 +117,18 @@
 <script type="text/x-dc" data-dc-script="">
 // MSAL sign-in -- same tenant/app registration/API scope as the dashboard
 // itself (Sales Insights Dashboard.dc.html) and the Inventory Dashboard,
-// since all three call the same backend Function App. This page's own URL
-// (the repo root) is the one redirect URI actually registered in Azure AD
-// for Sales Insights -- see MSAL_CONFIG.redirectUri.
+// since all three call the same backend Function App.
+// redirectUri is hardcoded, NOT derived from window.location -- confirmed
+// 2026-08-22 that a browser can resolve this page's own URL as
+// ".../Sales-Insights/index.html" (index.html spelled out) even though the
+// registered Azure AD redirect URI is the bare ".../Sales-Insights/"
+// (trailing slash, no filename), causing AADSTS50011. Hardcoding to the
+// exact registered string sidesteps that mismatch regardless of how the
+// user's browser normalizes the address bar.
 const LOGIN_MSAL_CONFIG = {
   clientId: "2e19d14d-6914-4f52-8bbb-119481314eef",
   tenantId: "cbe83df2-b350-4dab-8d5f-f78d21fe7d27",
-  redirectUri: window.location.origin + window.location.pathname,
+  redirectUri: "https://meridian-group-za.github.io/Sales-Insights/",
 };
 const LOGIN_API_SCOPE = "api://878107a0-1dfb-4697-a7a1-615e47e9f67b/access_as_user";
 
