@@ -2432,14 +2432,13 @@ class Component extends DCLogic {
           this.apiFetch("summary", params), this.apiFetch("kpi_cards", params),
           this.apiFetch("monthly_trend", params),
           this.apiFetch("category_monthly", { client: params.client, brand: params.brand }),
-          // bucket_summary/banner_bucket_summary only ever loaded once
-          // (unfiltered) via loadCore() -- neither the Value/Volume Share by
-          // product bucket widget nor its retailer-type counterpart ever
-          // reacted to the Client filter (the only filter these two routes
-          // support; category/brand/region aren't a dimension on
-          // sales_client_monthly). Fixed 2026-08-22.
-          this.apiFetch("bucket_summary", { client: params.client }),
-          this.apiFetch("banner_bucket_summary", { client: params.client }),
+          // bucket_summary/banner_bucket_summary now support the full filter
+          // set server-side (category/brand/region/zone, not just client) --
+          // this only ever forwarded `client`, so the Value/Volume Share by
+          // product bucket widget and the Channel types table never reacted
+          // to any other filter. Fixed 2026-08-22.
+          this.apiFetch("bucket_summary", params),
+          this.apiFetch("banner_bucket_summary", params),
         ]);
         Object.assign(patch, { summary, kpi_cards, monthly_trend, category_monthly, bucket_summary, banner_bucket_summary });
       } else if (page === "regions") {
