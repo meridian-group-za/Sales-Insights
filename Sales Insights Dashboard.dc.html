@@ -5249,7 +5249,15 @@ class Component extends DCLogic {
       S.category !== "all"
         ? this.title(S.category) + " is " + this.pct(winVsYear(12, "value")) + " on the prior year over the last 12 months — check whether the shift is distribution or demand."
         : (catMovers.up ? this.title(catMovers.up.cat) + " is the largest positive category contribution at " + this.cur(catMovers.up.delta) + " over the last 12 months." : null),
-      catMovers.down ? this.title(catMovers.down.cat) + " is the largest category decline at " + this.cur(catMovers.down.delta) + "." : null,
+      // catMovers is always computed network-wide across every category
+      // (category_monthly is fetched without a category filter -- filtering
+      // by the exact dimension you're grouping by would be pointless) --
+      // so once a specific category IS selected, this line must not show
+      // that unrelated network-wide "biggest decliner" figure: it looked
+      // like the number "wasn't reacting" to the Category filter, when
+      // really it was correctly ignoring it by design. Fixed 2026-08-22.
+      S.category !== "all" ? null
+        : (catMovers.down ? this.title(catMovers.down.cat) + " is the largest category decline at " + this.cur(catMovers.down.delta) + "." : null),
       worstMonth ? monthName(worstMonth.month) + " is the weakest year-on-year month for " + scopeLabel + " at " + this.pct(worstMonth.vs) + "." : null,
       null
     ].filter(Boolean).slice(0, 4);
