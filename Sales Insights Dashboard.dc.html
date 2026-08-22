@@ -2224,7 +2224,28 @@ if (siIsLocalDev()) {
   const siOverlayEl = document.getElementById("siAuthOverlay");
   if (siOverlayEl) siOverlayEl.style.display = "none";
 } else {
+  // Race handleRedirectPromise() against a hard timeout -- confirmed
+  // 2026-08-22 that a plain .then()/.catch() on it isn't enough: if the
+  // promise itself never settles (hangs, rather than resolving or
+  // rejecting -- seen in practice after a real sign-in redirect back to
+  // this page), neither callback ever fires and the page is stuck on
+  // "Checking your session..." forever. A timeout guarantees this always
+  // resolves one way or the other within a few seconds.
+  let siAuthSettled = false;
+  const siAuthTimeout = setTimeout(() => {
+    if (siAuthSettled) return;
+    siAuthSettled = true;
+    console.error("handleRedirectPromise timed out after 6s");
+    // A cached account may still exist even if the redirect-promise call
+    // itself hung -- check directly before giving up and bouncing to login.
+    if (siMsalInstance.getAllAccounts().length > 0) siRevealDashboard();
+    else window.location.href = "index.html";
+  }, 6000);
+
   siMsalInstance.handleRedirectPromise().then((result) => {
+    if (siAuthSettled) return;
+    siAuthSettled = true;
+    clearTimeout(siAuthTimeout);
     if (result || siMsalInstance.getAllAccounts().length > 0) {
       siRevealDashboard();
     } else {
@@ -2237,6 +2258,9 @@ if (siIsLocalDev()) {
       window.location.href = "index.html";
     }
   }).catch((e) => {
+    if (siAuthSettled) return;
+    siAuthSettled = true;
+    clearTimeout(siAuthTimeout);
     console.error("handleRedirectPromise error:", e);
     window.location.href = "index.html";
   });
