@@ -2552,7 +2552,7 @@ class Component extends DCLogic {
         // that live full-table-scan at all.
       } else if (page === "pricemix") {
         const [pm, pvb] = await Promise.all([
-          this.apiFetch("price_mix", { client: this.state.client === "all" ? null : this.state.client }),
+          this.apiFetch("price_mix", params),
           this.apiFetch("price_volume_bridge", params),
         ]);
         Object.assign(patch, { price_mix: pm, price_volume_bridge: pvb });
