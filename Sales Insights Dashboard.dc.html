@@ -2185,17 +2185,44 @@ function siIsLocalDev() {
   return ["localhost", "127.0.0.1"].includes(window.location.hostname);
 }
 
-const siMsalInstance = siIsLocalDev() ? null : new msal.PublicClientApplication({
-  auth: {
-    clientId: SI_MSAL_CONFIG.clientId,
-    authority: `https://login.microsoftonline.com/${SI_MSAL_CONFIG.tenantId}`,
-    redirectUri: SI_MSAL_CONFIG.redirectUri,
-  },
-  cache: { cacheLocation: "sessionStorage" },
-});
-
 let siResolveAuthReady;
 const siAuthReady = new Promise((resolve) => { siResolveAuthReady = resolve; });
+
+// Absolute failsafe -- registered before ANYTHING below that could throw
+// (constructing the MSAL client, calling into it, etc). Confirmed
+// 2026-08-22: the previous version's per-call timeout guard was itself
+// inside the same script as `new msal.PublicClientApplication(...)`, which
+// runs at module-eval time against `msal` -- a global from a `defer`red
+// CDN script tag. If that hadn't finished loading yet (a real, timing-
+// dependent race against network speed, not something that reproduces on
+// every load), the constructor throws a plain uncaught ReferenceError that
+// kills the whole script block right there, before the timeout guard
+// below ever gets registered -- "Checking your session..." then hangs
+// forever with NO console error at all pointing at why, since nothing
+// downstream ever ran. This one is deliberately the very first thing in
+// the file's script so it can't be skipped by a later crash.
+setTimeout(() => {
+  if (document.getElementById("siAuthOverlay")?.style.display !== "none") {
+    console.error("si-auth: failsafe fired -- something before this point never completed");
+    const overlay = document.getElementById("siAuthOverlay");
+    if (overlay) overlay.style.display = "none";
+    siResolveAuthReady();
+  }
+}, 8000);
+
+let siMsalInstance = null;
+try {
+  siMsalInstance = siIsLocalDev() ? null : new msal.PublicClientApplication({
+    auth: {
+      clientId: SI_MSAL_CONFIG.clientId,
+      authority: `https://login.microsoftonline.com/${SI_MSAL_CONFIG.tenantId}`,
+      redirectUri: SI_MSAL_CONFIG.redirectUri,
+    },
+    cache: { cacheLocation: "sessionStorage" },
+  });
+} catch (e) {
+  console.error("si-auth: failed to construct MSAL client (is the msal-browser CDN script still loading?):", e);
+}
 
 function siSetAuthLoading(title, subtitle) {
   const box = document.getElementById("siAuthLoadingBox");
@@ -2223,6 +2250,13 @@ if (siIsLocalDev()) {
   siResolveAuthReady();
   const siOverlayEl = document.getElementById("siAuthOverlay");
   if (siOverlayEl) siOverlayEl.style.display = "none";
+} else if (!siMsalInstance) {
+  // Constructor threw (caught above) -- nothing to check a session with.
+  // The 8s failsafe further up will catch this and bounce to login if
+  // this branch itself doesn't (belt and braces: it always will, this is
+  // just for clarity/immediacy rather than waiting out the failsafe).
+  console.error("si-auth: no MSAL instance, cannot verify session");
+  window.location.href = "index.html";
 } else {
   // Race handleRedirectPromise() against a hard timeout -- confirmed
   // 2026-08-22 that a plain .then()/.catch() on it isn't enough: if the

@@ -136,14 +136,28 @@ function loginIsLocalDev() {
   return ["localhost", "127.0.0.1"].includes(window.location.hostname);
 }
 
-const loginMsalInstance = loginIsLocalDev() ? null : new msal.PublicClientApplication({
-  auth: {
-    clientId: LOGIN_MSAL_CONFIG.clientId,
-    authority: `https://login.microsoftonline.com/${LOGIN_MSAL_CONFIG.tenantId}`,
-    redirectUri: LOGIN_MSAL_CONFIG.redirectUri,
-  },
-  cache: { cacheLocation: "sessionStorage" },
-});
+// Constructing this at module-eval time against `msal` (a global from a
+// `defer`red CDN script tag) is a real, timing-dependent race -- confirmed
+// 2026-08-22 on the dashboard file's identical pattern: if msal-browser
+// hasn't finished loading yet, `new msal.PublicClientApplication` throws
+// a plain uncaught ReferenceError, which (unguarded) would take the whole
+// `class Component extends DCLogic` definition down with it since it's in
+// the same script block below. Wrapped so a slow CDN load degrades to "no
+// MSAL instance" (handled below) instead of breaking page rendering
+// entirely.
+let loginMsalInstance = null;
+try {
+  loginMsalInstance = loginIsLocalDev() ? null : new msal.PublicClientApplication({
+    auth: {
+      clientId: LOGIN_MSAL_CONFIG.clientId,
+      authority: `https://login.microsoftonline.com/${LOGIN_MSAL_CONFIG.tenantId}`,
+      redirectUri: LOGIN_MSAL_CONFIG.redirectUri,
+    },
+    cache: { cacheLocation: "sessionStorage" },
+  });
+} catch (e) {
+  console.error("si-login: failed to construct MSAL client (is the msal-browser CDN script still loading?):", e);
+}
 
 const DASHBOARD_URL = "Sales%20Insights%20Dashboard.dc.html";
 
