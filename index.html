@@ -153,7 +153,7 @@ try {
       authority: `https://login.microsoftonline.com/${LOGIN_MSAL_CONFIG.tenantId}`,
       redirectUri: LOGIN_MSAL_CONFIG.redirectUri,
     },
-    cache: { cacheLocation: "sessionStorage" },
+    cache: { cacheLocation: "localStorage" },
   });
 } catch (e) {
   console.error("si-login: failed to construct MSAL client (is the msal-browser CDN script still loading?):", e);

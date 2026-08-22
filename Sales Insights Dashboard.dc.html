@@ -2200,7 +2200,7 @@ const siMsalInstance = siIsLocalDev() ? null : new msal.PublicClientApplication(
     authority: `https://login.microsoftonline.com/${SI_MSAL_CONFIG.tenantId}`,
     redirectUri: SI_MSAL_CONFIG.redirectUri,
   },
-  cache: { cacheLocation: "sessionStorage" },
+  cache: { cacheLocation: "localStorage" },
 });
 
 let siResolveAuthReady;
@@ -2748,7 +2748,7 @@ class Component extends DCLogic {
       // OWN option list now cascades off category (see brandOpts), so a
       // brand chosen under the old category may not exist in the new one.
       setCategory: (e) => this.setState({ category: e.target.value, brand: "all" }, () => this.refetchCurrentPage()),
-      setClient: (e) => this.setState({ client: e.target.value }, () => this.refetchCurrentPage()),
+      setClient: (e) => this.setState({ client: e.target.value, brand: "all", category: "all", product: "all" }, () => { this.refetchCurrentPage(); this.refetchFilterOptions(); }),
       setBrand: (e) => this.setState({ brand: e.target.value }, () => this.refetchCurrentPage()),
       setProduct: (e) => this.setState({ product: e.target.value }, () => this.refetchCurrentPage()),
       resetFilters: () => this.setState({ scopeMonth: "p12m", region: "all", zone: "all", category: "all", client: "all", brand: "all", product: "all", measure: "value", q: "", tier: "all", banner: "all", sort: "val", limit: 20 }, () => this.refetchCurrentPage()),
