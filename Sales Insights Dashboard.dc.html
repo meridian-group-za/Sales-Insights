@@ -2278,16 +2278,42 @@ if (siIsLocalDev()) {
   });
 }
 
+// Concurrent callers share ONE in-flight token request. Every apiFetch
+// calls this, and a single filter change fires ~10 apiFetch calls at once
+// (loadPage's Promise.all plus refetchFilterOptions), so this used to mean
+// 10 simultaneous MSAL calls. Once the access token expires (~1 hour),
+// acquireTokenSilent fails for all 10 and they all raced into
+// acquireTokenRedirect -- MSAL rejects every concurrent one after the
+// first with interaction_in_progress. Those rejections failed the
+// Promise.all, loadPage's catch only logged, and the page went on showing
+// the previous numbers with no visible error: "the filters don't react".
+// The old code also `return null` on that path, so callers sent a literal
+// "Bearer null" rather than failing outright. Fixed 2026-09-03.
+let siTokenInFlight = null;
+let siRedirectStarted = false;
+
 async function siGetApiToken() {
   const accounts = siMsalInstance.getAllAccounts();
   if (accounts.length === 0) throw new Error("Not signed in");
-  try {
-    const result = await siMsalInstance.acquireTokenSilent({ scopes: [SI_API_SCOPE], account: accounts[0] });
-    return result.accessToken;
-  } catch (e) {
-    await siMsalInstance.acquireTokenRedirect({ scopes: [SI_API_SCOPE], account: accounts[0] });
-    return null; // page will redirect -- never reaches here
-  }
+  if (siTokenInFlight) return siTokenInFlight;
+  siTokenInFlight = (async () => {
+    try {
+      const result = await siMsalInstance.acquireTokenSilent({ scopes: [SI_API_SCOPE], account: accounts[0] });
+      return result.accessToken;
+    } catch (e) {
+      // Exactly one redirect however many callers land here. Deliberately
+      // not awaited: acquireTokenRedirect only settles as the browser
+      // navigates away, so awaiting it just parks every caller.
+      if (!siRedirectStarted) {
+        siRedirectStarted = true;
+        siMsalInstance.acquireTokenRedirect({ scopes: [SI_API_SCOPE], account: accounts[0] });
+      }
+      throw new Error("Session expired — redirecting to sign in");
+    } finally {
+      siTokenInFlight = null;
+    }
+  })();
+  return siTokenInFlight;
 }
 
 class Component extends DCLogic {
@@ -2308,7 +2334,7 @@ class Component extends DCLogic {
     dim: "region", top: "brands", signal: "growing",
     q: "", tier: "all", banner: "all", sort: "val", limit: 20,
     findingsOpen: false,
-    loadingPage: false, loadedPages: {},
+    loadingPage: false, loadedPages: {}, loadErr: "",
     // Store x client x product x region combination matrix (Carin,
     // 2026-08-21: "you must be able to select all filters and it must give
     // a result so we need all possibilities") -- separate filter state from
@@ -2555,11 +2581,15 @@ class Component extends DCLogic {
         return; // overview/trend need nothing beyond loadCore()
       }
       if (this._loadSeq[page] !== seq) return; // a newer request for this page already landed
-      this.setState(s => ({ d: Object.assign({}, s.d, patch), loadingPage: false,
+      this.setState(s => ({ d: Object.assign({}, s.d, patch), loadingPage: false, loadErr: "",
         loadedPages: Object.assign({}, s.loadedPages, { [page]: true }) }));
     } catch (e) {
+      // Surfaced in the header meta line, not console-only. A silent catch
+      // here is what made every backend failure look like "the filters
+      // don't react": the page just kept its previous numbers with no
+      // indication anything had gone wrong (2026-09-03).
       console.error("loadPage failed:", page, e);
-      if (this._loadSeq[page] === seq) this.setState({ loadingPage: false });
+      if (this._loadSeq[page] === seq) this.setState({ loadingPage: false, loadErr: (e && e.message) || String(e) });
     }
   }
 
@@ -5326,7 +5356,8 @@ class Component extends DCLogic {
     ];
 
     return Object.assign(base, {
-      metaLine: this.int(d.meta.row_count) + " rows · " + d.meta.clients.length + " clients · refreshed " + d.meta.generated_at.slice(0, 10),
+      metaLine: this.int(d.meta.row_count) + " rows · " + d.meta.clients.length + " clients · refreshed " + d.meta.generated_at.slice(0, 10)
+        + (S.loadErr ? "  ·  ⚠ could not refresh: " + S.loadErr : ""),
       latestLabel: this.mon(latest, true),
       narrativeScope: scopeLabel, narrativeValue: this.cur(cur.value), narrativePeriod: periodLabel,
       narrativeDir: vsPrev == null ? "flat" : (vsPrev >= 0 ? "up " : "down ") + this.bare(vsPrev),
