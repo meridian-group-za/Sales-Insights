@@ -2465,7 +2465,10 @@ class Component extends DCLogic {
         const [summary, kpi_cards, monthly_trend, category_monthly, bucket_summary, banner_bucket_summary] = await Promise.all([
           this.apiFetch("summary", params), this.apiFetch("kpi_cards", params),
           this.apiFetch("monthly_trend", params),
-          this.apiFetch("category_monthly", { client: params.client, brand: params.brand }),
+          // region added 2026-08-24: this used to omit it, so the "largest
+          // category contribution/decline" findings on Overview stayed on
+          // unfiltered numbers when only the Region filter changed.
+          this.apiFetch("category_monthly", { client: params.client, brand: params.brand, region: params.region }),
           // bucket_summary/banner_bucket_summary now support the full filter
           // set server-side (category/brand/region/zone, not just client) --
           // this only ever forwarded `client`, so the Value/Volume Share by
@@ -2669,6 +2672,37 @@ class Component extends DCLogic {
   refetchCurrentPage() {
     this.setState({ loadingPage: true });
     this.loadPage(this.state.page);
+  }
+
+  // The three client-dependent global filter option lists (Category, Brand,
+  // Product) are fetched eagerly in loadCore() with NO client filter, so
+  // after picking a client they'd still offer that client's non-existent
+  // categories/brands/products. Re-fetch just those, scoped to the new
+  // client selection, and merge into state.d.
+  //
+  // 2026-09-03: this method was being called from three places
+  // (setClientAll, toggleClientOne, setClient) but never actually existed
+  // -- so ticking any client in the Client dropdown threw
+  // "this.refetchFilterOptions is not a function" out of the setState
+  // callback, React tore the tree down with no error boundary, and the
+  // whole dashboard went blank. Wrapped in try/catch so a failing option
+  // fetch degrades to a stale dropdown instead of ever doing that again.
+  async refetchFilterOptions() {
+    const client = this.state.client;
+    try {
+      const [categories, brands, products, brand_categories] = await Promise.all([
+        this.apiFetch("categories", { client }),
+        this.apiFetch("brands", { client }),
+        this.apiFetch("products", { client }),
+        this.apiFetch("brand_categories", { client }),
+      ]);
+      // Ignore a response that landed after the user moved on to a
+      // different client selection -- same out-of-order guard loadPage uses.
+      if (this.state.client !== client) return;
+      this.setState(s => ({ d: Object.assign({}, s.d, { categories, brands, products, brand_categories }) }));
+    } catch (e) {
+      console.error("refetchFilterOptions failed:", e);
+    }
   }
 
   componentDidMount() {
