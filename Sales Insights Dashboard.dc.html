@@ -3813,11 +3813,27 @@ class Component extends DCLogic {
     // 2026-08-22 (Carin: put the value/volume split by division below the
     // Regional snapshot, each as a %). Computed client-side from the
     // already-loaded province data rather than a new API call.
+    // Every region name the data actually uses. The original list held names
+    // this data does not contain - 'KWA-ZULU NATAL', 'PE OPERATIONS',
+    // 'SWD OPERATIONS', 'EAST LONDON/EASTERN CAPE' - so five real regions fell
+    // through to Unmapped, and since the percentages are taken over ALL
+    // provinces the three tiles only added to 76.8%.
+    //
+    // Nearly all of the strays were Coastal, which was reported at 19.1% when
+    // it is 42.2%. Names verified against /api/sales-data/regions rather than
+    // assumed: KWAZULU NATAL R3.91bn, EAST LONDON R1.29bn, PORT ELIZABETH
+    // R1.09bn, SWD R640m, EASTERN CAPE R57m.
     const SI_REGION_DIVISION = {
-      'EAST LONDON/EASTERN CAPE': 'Coastal', 'FREE STATE': 'Central', 'GAUTENG': 'Inland',
-      'KWA-ZULU NATAL': 'Coastal', 'LIMPOPO': 'Inland', 'MPUMALANGA': 'Inland',
-      'NORTH WEST': 'Central', 'PE OPERATIONS': 'Coastal', 'SWD OPERATIONS': 'Coastal',
-      'WESTERN CAPE': 'Coastal',
+      // Coastal
+      'EAST LONDON/EASTERN CAPE': 'Coastal', 'EAST LONDON': 'Coastal',
+      'EASTERN CAPE': 'Coastal', 'KWA-ZULU NATAL': 'Coastal', 'KWAZULU NATAL': 'Coastal',
+      'PE OPERATIONS': 'Coastal', 'PORT ELIZABETH': 'Coastal',
+      'SWD OPERATIONS': 'Coastal', 'SWD': 'Coastal', 'WESTERN CAPE': 'Coastal',
+      // Central
+      'FREE STATE': 'Central', 'NORTH WEST': 'Central',
+      // Inland - North and South Rand are Gauteng depots
+      'GAUTENG': 'Inland', 'LIMPOPO': 'Inland', 'MPUMALANGA': 'Inland',
+      'NORTH RAND': 'Inland', 'SOUTH RAND': 'Inland',
     };
     const divAgg = {};
     provList.forEach(r => {
