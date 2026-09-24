@@ -173,6 +173,15 @@ class Component extends DCLogic {
     (async () => {
       try {
         const result = await loginMsalInstance.handleRedirectPromise();
+        // Nothing cached here does not mean signed out: MSAL caches per app
+        // registration and per origin, and people arrive from the Nexus
+        // portal already signed in to Microsoft. ssoSilent reuses that
+        // session in a hidden iframe, so the sign-in button below is only
+        // for someone who genuinely has no session.
+        if (!result && loginMsalInstance.getAllAccounts().length === 0) {
+          try { await loginMsalInstance.ssoSilent({ scopes: [LOGIN_API_SCOPE] }); }
+          catch (e) { /* no session to reuse - fall through to the button */ }
+        }
         if (result || loginMsalInstance.getAllAccounts().length > 0) {
           // Already signed in (redirect just completed, or a live session
           // from earlier) -- go straight to the dashboard rather than
