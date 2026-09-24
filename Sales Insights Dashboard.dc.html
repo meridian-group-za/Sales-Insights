@@ -3834,6 +3834,12 @@ class Component extends DCLogic {
       // Inland - North and South Rand are Gauteng depots
       'GAUTENG': 'Inland', 'LIMPOPO': 'Inland', 'MPUMALANGA': 'Inland',
       'NORTH RAND': 'Inland', 'SOUTH RAND': 'Inland',
+      // The PROVINCE names this panel is actually given. It does not iterate
+      // raw regions at all: PROV folds regions onto the nine provinces first,
+      // and those names are what reach this map. "KwaZulu-Natal" is hyphenated
+      // there while the region is not, and that one character left 13.0% of
+      // value - the whole province - unmapped, so the tiles added to 87%.
+      'KWAZULU-NATAL': 'Coastal', 'NORTHERN CAPE': 'Central',
     };
     const divAgg = {};
     provList.forEach(r => {
