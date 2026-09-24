@@ -328,6 +328,13 @@
         <h3 style="font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 14.5px; color: #f3f7fc; margin: 0; margin-right: auto">Executive intelligence</h3>
         <span style="font-size: 11px; color: #4A6B8A">Based on current filters</span>
       </div>
+      <sc-if cond="{{ narrativeLoading }}">
+        <p style="display: flex; align-items: center; gap: 9px; font-size: 13.5px; line-height: 1.4; font-weight: 500; color: #8DA2B5; margin: 8px 0 0">
+          <span class="auth-spinner" aria-hidden="true" style="width: 13px; height: 13px; border-width: 2px"></span>
+          {{ narrativeStatus }}
+        </p>
+      </sc-if>
+      <sc-if cond="{{ narrativeReady }}">
       <p style="display: flex; align-items: baseline; flex-wrap: nowrap; gap: 7px; font-size: 13.5px; line-height: 1.4; font-weight: 500; color: #c9d7e6; margin: 8px 0 0; overflow-x: auto; white-space: nowrap">
         <span style="color: #f2955c; font-weight: 600; text-transform: uppercase; letter-spacing: .04em">{{ narrativeScope }}</span>
         <span style="color: #4A6B8A">&mdash;</span>
@@ -339,6 +346,7 @@
         <span style="color: #4A6B8A">&middot;</span>
         <span style="color: #ec6d25; font-weight: 600">{{ narrativeStores }}</span><span>trading stores</span>
       </p>
+      </sc-if>
 
       <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 11px">
         <sc-for list="{{ intelCards }}" as="c" hint-placeholder-count="3">
@@ -2943,6 +2951,12 @@ class Component extends DCLogic {
 
     if (!d) return Object.assign(base, {
       metaLine: S.err || "Loading live sales data…", latestLabel: "—",
+      // Until the numbers arrive there is no sentence to write, so we do not
+      // render one. Interpolating placeholders into the finished sentence gave
+      // "LOADING — in — · — units · — trading stores", which reads as broken
+      // rather than as loading.
+      narrativeReady: false, narrativeLoading: true,
+      narrativeStatus: S.err ? ("No data — " + S.err) : "Loading live sales data…",
       narrativeScope: S.err ? "No data" : "Loading", narrativeValue: "—", narrativePeriod: "—",
       narrativeDir: "", narrativeDirColor: "#8DA2B5", narrativeUnits: "—", narrativeStores: "—",
       intelCards: [], focusItems: [], findings: [], findingsLabel: "Full insight summary", kpis: [], rolling: [],
@@ -5387,6 +5401,7 @@ class Component extends DCLogic {
       metaLine: this.int(d.meta.row_count) + " rows · " + d.meta.clients.length + " clients · refreshed " + d.meta.generated_at.slice(0, 10)
         + (S.loadErr ? "  ·  ⚠ could not refresh: " + S.loadErr : ""),
       latestLabel: this.mon(latest, true),
+      narrativeReady: true, narrativeLoading: false, narrativeStatus: "",
       narrativeScope: scopeLabel, narrativeValue: this.cur(cur.value), narrativePeriod: periodLabel,
       narrativeDir: vsPrev == null ? "flat" : (vsPrev >= 0 ? "up " : "down ") + this.bare(vsPrev),
       narrativeDirColor: this.tone(vsPrev),
