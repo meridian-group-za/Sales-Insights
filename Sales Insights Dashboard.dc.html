@@ -2389,9 +2389,9 @@ class Component extends DCLogic {
     q: "", tier: "all", banner: "all", sort: "val", limit: 20,
     findingsOpen: false,
     loadingPage: false, loadedPages: {}, loadErr: "",
-    // Store x client x product x region combination matrix (Carin,
-    // 2026-08-21: "you must be able to select all filters and it must give
-    // a result so we need all possibilities") -- separate filter state from
+    // Store x client x product x region combination matrix (Aug
+    // 2026: every filter combination must be selectable and return a
+    // result, so all possibilities are needed) -- separate filter state from
     // the Store league table above it, since store_matrix is a genuinely
     // different grain (store x client x product x region) from
     // store_performance (store x client only, no product). Also carries
@@ -2405,8 +2405,8 @@ class Component extends DCLogic {
 
   // ===========================================================================
   // Live API layer -- replaces the old single-fetch of a static
-  // sales-insights-data.json blob (Carin, 2026-08-21: "i dont think we can
-  // work on one big json file"). Every dataset now comes from its own live
+  // sales-insights-data.json blob (Aug 2026: a single large JSON file
+  // was not workable). Every dataset now comes from its own live
   // sales_queries.py route, with real filter query params, mirroring the
   // MSAL+bearer-token pattern already drafted (unused) in the plain-JS
   // sibling C:\Users\CarinPillay\sales-insights-dashboard\index.html.
@@ -2424,7 +2424,7 @@ class Component extends DCLogic {
   // carries the signed-in user's own identity/roles for client-scoping.
   // Same Function App/key already shipped client-side in the Inventory
   // Dashboard (Meridian Nexus.dc.html's DASHBOARD_API_KEY) -- reusing it
-  // here isn't a new exposure. CONFIRM WITH CARIN: this key was issued for
+  // here isn't a new exposure. CONFIRM WITH THE BUSINESS: this key was issued for
   // the dashboard-data route: if sales-data has its own separate function
   // key, swap it in here before go-live.
   static PROD_API_KEY = "B92Q5UkjoKI2nwp0AhksQbUryCLsxTktB-1fwtEBVUfCAzFuPty3Ig==";
@@ -2622,7 +2622,7 @@ class Component extends DCLogic {
         Object.assign(patch, { store_performance: sp, store_count: sc.stores });
         this.setState({ hosOpts: hos, gmOpts: gm, rmOpts: rm, mgrOpts: mgr });
         // Store x client x product x region matrix widget removed
-        // 2026-08-22 (Carin: "take this out it doesn't work") -- no longer
+        // Aug 2026 (requested removed as it did not work) -- no longer
         // calling loadStoreMatrix() here, so this page no longer triggers
         // that live full-table-scan at all.
       } else if (page === "pricemix") {
@@ -3810,7 +3810,7 @@ class Component extends DCLogic {
 
     // Divisional snapshot (Central/Coastal/Inland) -- same confirmed-complete
     // Region->Division mapping used server-side for the ?zone= filter fix,
-    // 2026-08-22 (Carin: put the value/volume split by division below the
+    // Aug 2026 (requirement: value/volume split by division below the
     // Regional snapshot, each as a %). Computed client-side from the
     // already-loaded province data rather than a new API call.
     // Every region name the data actually uses. The original list held names
@@ -5687,8 +5687,8 @@ class Component extends DCLogic {
     if (el.querySelector("[data-nx-back]")) return false;
     var txt = (el.textContent || "").trim();
     // Log out / Sign out on most of these. Inventory has neither - its
-    // equivalent bottom-of-nav control is "Collapse Navigation", which Carin
-    // asked to use there instead.
+    // equivalent bottom-of-nav control is "Collapse Navigation", which is
+    // used there instead.
     if (!/^((log|sign) ?out|collapse navigation)$/i.test(txt)) return false;
     var r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;   // skip hidden copies
@@ -5710,7 +5710,7 @@ class Component extends DCLogic {
   }
 
   // Sales Insights keeps its Sign out in the top-right header, so the swapped
-  // control lands up there. Carin wants it with the rest of the navigation, so
+  // control lands up there. It belongs with the rest of the navigation, so
   // anything outside the nav column is moved into it, above the Meridian logo
   // that sits at the foot of these sidebars.
   function moveIntoSidebar(el) {
@@ -5781,7 +5781,7 @@ class Component extends DCLogic {
   }
 
   // The signed-in person's name sits just above this control on some of these
-  // dashboards. Carin asked for it gone. Only the element immediately before
+  // dashboards. It was requested removed. Only the element immediately before
   // the button is considered, and only when it looks like a name: a couple of
   // words, letters only, no digits and no label wording.
   function hideNameAbove(el) {

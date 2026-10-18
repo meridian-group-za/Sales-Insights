@@ -3,7 +3,7 @@
 
 Static mock-data/*.json dumps were exported once with no filters applied,
 so changing a filter in the dashboard had zero effect on the data shown --
-that's the bug Carin flagged ("THE FILTERS ARE NOT WIRED UP"). This server
+that's the reported bug that the filters were not wired up. This server
 calls sales_queries.dispatch_path() live against sales.duckdb for every
 request, passing through whatever query-string params the dashboard sends
 (client/month/category/brand/region/product/dimension/etc), so filters
